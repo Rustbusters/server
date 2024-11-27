@@ -1,16 +1,16 @@
 use crossbeam_channel::{select, Receiver, Sender};
 use rand::seq::IteratorRandom;
 use rand::{random, rng, Rng};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
+use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{
     FloodRequest, FloodResponse, Fragment, Message, MessageContent, MessageData, NodeType, Packet,
     PacketType,
 };
-use wg_2024::packet::NodeType::{Client, Server, Drone};
 
 pub struct SimpleHost {
     id: NodeId,
@@ -65,20 +65,17 @@ impl SimpleHost {
             let sleep_duration = rng.random_range(1..=10);
             thread::sleep(Duration::from_secs(sleep_duration));
 
-            let hosts = self.known_nodes.iter().filter(|&(_, node_type)|
-                match node_type {
-                    Client => {true},
-                    Drone => {false}
-                    Server => {true}
-                }
-            ).collect();
+            let mut hosts = self.known_nodes.clone();
+            hosts.retain(|&id, node_type| match node_type {
+                NodeType::Client => true,
+                NodeType::Server => true,
+                _ => false,
+            });
 
             // Choose a random node to send a message to
             if !hosts.is_empty() {
-                if let Some(&random_node_id) = hosts
-                    .keys()
-                    .filter(|&&id| id != self.id)
-                    .choose(&mut rng)
+                if let Some(&random_node_id) =
+                    hosts.keys().filter(|&&id| id != self.id).choose(&mut rng)
                 {
                     // Send a message to the random node
                     self.send_random_message(random_node_id);
@@ -194,10 +191,10 @@ impl SimpleHost {
             // // Create a random message content
             // let message_content = MessageContent::ReqServerType;
             //
-            // // Increment session_id_counter
-            // self.session_id_counter += 1;
-            // let session_id = self.session_id_counter;
-            //
+            // Increment session_id_counter
+            self.session_id_counter += 1;
+            let session_id = self.session_id_counter;
+
             // // Create the message
             // let message_data = Message {
             //     message_data: MessageData {
@@ -240,11 +237,11 @@ impl SimpleHost {
     fn compute_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
         // Simple BFS to find the shortest path
         let mut visited = HashSet::new();
-        let mut queue = Vec::new();
+        let mut queue = VecDeque::new();
         let mut predecessors = HashMap::new();
 
         visited.insert(self.id);
-        queue.push(self.id);
+        queue.push_back(self.id);
 
         while let Some(current) = queue.remove(0) {
             if current == destination_id {
@@ -267,7 +264,7 @@ impl SimpleHost {
                 for &neighbor in neighbors {
                     if !visited.contains(&neighbor) {
                         visited.insert(neighbor);
-                        queue.push(neighbor);
+                        queue.push_back(neighbor);
                         predecessors.insert(neighbor, current);
                     }
                 }
@@ -277,11 +274,13 @@ impl SimpleHost {
         None // No route found
     }
 
-    fn fragment_message(&self, /*message: &Message*/) -> Vec<Fragment> {
+    fn fragment_message(&self /*message: &Message*/) -> Vec<Fragment> {
         // Serialize the MessageData
         // let serialized_data = bincode::serialize(&message.message_data).unwrap();
         // TODO: Implement serialization (not derived in the lib)... for now, use random data
-        let serialized_data: Vec<u8> = (0..rng().random_range(100..200)).map(|_| random()).collect();
+        let serialized_data: Vec<u8> = (0..rng().random_range(100..200))
+            .map(|_| random())
+            .collect();
 
         // Fragment the data into chunks of 80 bytes
         let chunk_size = 80;
