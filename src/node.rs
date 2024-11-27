@@ -2,9 +2,9 @@ use crossbeam_channel::{select, Receiver, Sender};
 use rand::seq::IteratorRandom;
 use rand::{random, rng, Rng};
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::process::Command;
 use std::thread;
 use std::time::Duration;
+use wg_2024::controller::{DroneCommand, NodeEvent};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{
@@ -15,8 +15,8 @@ use wg_2024::packet::{
 pub struct SimpleHost {
     id: NodeId,
     node_type: NodeType,
-    sim_contr_send: Sender<Command>,
-    sim_contr_recv: Receiver<Command>,
+    controller_send: Sender<NodeEvent>,
+    controller_recv: Receiver<DroneCommand>,
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
     known_nodes: HashMap<NodeId, NodeType>,
@@ -30,8 +30,8 @@ impl SimpleHost {
     pub fn new(
         id: NodeId,
         node_type: NodeType,
-        sim_contr_send: Sender<Command>,
-        sim_contr_recv: Receiver<Command>,
+        controller_send: Sender<NodeEvent>,
+        controller_recv: Receiver<DroneCommand>,
         packet_recv: Receiver<Packet>,
         packet_send: HashMap<NodeId, Sender<Packet>>,
     ) -> Self {
@@ -41,8 +41,8 @@ impl SimpleHost {
         Self {
             id,
             node_type,
-            sim_contr_send,
-            sim_contr_recv,
+            controller_send,
+            controller_recv,
             packet_recv,
             packet_send,
             known_nodes: HashMap::new(),
