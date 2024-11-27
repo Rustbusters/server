@@ -1,7 +1,7 @@
 use crossbeam_channel::{select, Receiver, Sender};
 use rand::seq::IteratorRandom;
 use rand::{random, rng, Rng};
-use log::{info, error, debug, warn};
+use log::{debug, error, info, warn};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::thread;
 use std::time::Duration;
