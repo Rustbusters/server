@@ -37,7 +37,7 @@ impl SimpleHost {
         packet_send: HashMap<NodeId, Sender<Packet>>,
     ) -> Self {
         if let NodeType::Drone = node_type {
-            error!("Drone nodes are not supported by SimpleHost")
+            error!("Drone nodes are not supported by SimpleHost");
             panic!("Drone nodes are not supported by SimpleHost");
         }
         info!("Host {} spawned succesfully", id);
