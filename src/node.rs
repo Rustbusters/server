@@ -1,6 +1,7 @@
 use crossbeam_channel::{select, Receiver, Sender};
 use rand::seq::IteratorRandom;
 use rand::{random, rng, Rng};
+use log::{info, error, debug, warn};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::thread;
 use std::time::Duration;
@@ -36,8 +37,10 @@ impl SimpleHost {
         packet_send: HashMap<NodeId, Sender<Packet>>,
     ) -> Self {
         if let NodeType::Drone = node_type {
+            error!("Drone nodes are not supported by SimpleHost")
             panic!("Drone nodes are not supported by SimpleHost");
         }
+        info!("Host {} spawned succesfully", id);
         Self {
             id,
             node_type,
@@ -55,6 +58,7 @@ impl SimpleHost {
 
     pub fn run(&mut self) {
         // Start network discovery
+        info!("Host {} started network discovery", self.id);
         self.network_discovery();
 
         // Random number generator
@@ -78,6 +82,7 @@ impl SimpleHost {
                     hosts.keys().filter(|&&id| id != self.id).choose(&mut rng)
                 {
                     // Send a message to the random node
+                    info!("Send a message to node {random_node_id}");
                     self.send_random_message(random_node_id);
                 }
             }
@@ -144,11 +149,11 @@ impl SimpleHost {
             }
             PacketType::Ack(ack) => {
                 // Handle Acknowledgments
-                println!("Received Ack for fragment {}", ack.fragment_index);
+                info!("Received Ack for fragment {}", ack.fragment_index);
             }
             PacketType::Nack(nack) => {
                 // Handle Negative Acknowledgments
-                println!("Received Nack {nack:?}");
+                info!("Received Nack {nack:?}");
             }
             _ => {
                 // Other packet types can be handled here
@@ -180,8 +185,8 @@ impl SimpleHost {
             // Remove the flood_id from pending
             self.pending_floods.remove(&flood_response.flood_id);
 
-            println!("Updated topology: {:?}", self.topology);
-            println!("Known nodes: {:?}", self.known_nodes);
+            info!("Updated topology: {:?}", self.topology);
+            info!("Known nodes: {:?}", self.known_nodes);
         }
     }
 
@@ -229,9 +234,9 @@ impl SimpleHost {
                 }
             }
 
-            println!("Sent message to {} via route {:?}", destination_id, route);
+            info!("Sent message to {} via route {:?}", destination_id, route);
         } else {
-            println!("No route to {}", destination_id);
+            info!("No route to {}", destination_id);
         }
     }
     fn compute_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
@@ -309,7 +314,7 @@ impl SimpleHost {
 
     fn handle_message_fragment(&mut self, session_id: u64, fragment: Fragment) {
         // Handle incoming message fragments (reassembly not implemented for simplicity)
-        println!(
+        info!(
             "Received fragment {} of session {}",
             fragment.fragment_index, session_id
         );
