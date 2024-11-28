@@ -148,11 +148,14 @@ impl SimpleHost {
             }
             PacketType::Ack(ack) => {
                 // Handle Acknowledgments
-                info!("Received Ack for fragment {}", ack.fragment_index);
+                info!(
+                    "Node {}: Received Ack for fragment {}",
+                    self.id, ack.fragment_index
+                );
             }
             PacketType::Nack(nack) => {
                 // Handle Negative Acknowledgments
-                info!("Received Nack {nack:?}");
+                info!("Node {}: Received Nack {nack:?}", self.id);
             }
             PacketType::FloodRequest(flood_request) => {
                 self.handle_flood_request(flood_request, packet.session_id);
@@ -170,22 +173,23 @@ impl SimpleHost {
                     self.known_nodes.insert(*to_id, to_type.clone());
 
                     // Update topology
-                    self.topology
-                        .entry(*from_id)
-                        .or_insert_with(Vec::new)
-                        .push(*to_id);
-                    self.topology
-                        .entry(*to_id)
-                        .or_insert_with(Vec::new)
-                        .push(*from_id);
+                    let from_to = self.topology.entry(*from_id).or_insert_with(Vec::new);
+                    if !from_to.contains(to_id) {
+                        from_to.push(*to_id);
+                    }
+
+                    let to_from = self.topology.entry(*to_id).or_insert_with(Vec::new);
+                    if !to_from.contains(from_id) {
+                        to_from.push(*from_id);
+                    }
                 }
             }
 
             // Remove the flood_id from pending
             self.pending_floods.remove(&flood_response.flood_id);
 
-            info!("Updated topology: {:?}", self.topology);
-            info!("Known nodes: {:?}", self.known_nodes);
+            info!("Node {}: Updated topology: {:?}", self.id, self.topology);
+            info!("Node {}: Known nodes: {:?}", self.id, self.known_nodes);
         }
     }
 
@@ -216,8 +220,8 @@ impl SimpleHost {
             let _ = sender.send(response_packet);
         } else {
             warn!(
-                "Cannot send FloodResponse to initiator {}",
-                flood_request.initiator_id
+                "Node {}: Cannot send FloodResponse to initiator {}",
+                self.id, flood_request.initiator_id
             );
         }
     }
@@ -266,9 +270,12 @@ impl SimpleHost {
                 }
             }
 
-            info!("Sent message to {} via route {:?}", destination_id, route);
+            info!(
+                "Node {}: Sent message to {} via route {:?}",
+                self.id, destination_id, route
+            );
         } else {
-            info!("No route to {}", destination_id);
+            info!("Node {}: No route to {}", self.id, destination_id);
         }
     }
     fn compute_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
@@ -347,8 +354,8 @@ impl SimpleHost {
     fn handle_message_fragment(&mut self, session_id: u64, fragment: Fragment) {
         // Handle incoming message fragments (reassembly not implemented for simplicity)
         info!(
-            "Received fragment {} of session {}",
-            fragment.fragment_index, session_id
+            "Node {}: Received fragment {} of session {}",
+            self.id, fragment.fragment_index, session_id
         );
     }
 }
