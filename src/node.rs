@@ -36,7 +36,7 @@ impl SimpleHost {
         packet_recv: Receiver<Packet>,
         packet_send: HashMap<NodeId, Sender<Packet>>,
     ) -> Self {
-        if let NodeType::Drone = node_type {
+        if let Drone = node_type {
             error!("Drone nodes are not supported by SimpleHost");
             panic!("Drone nodes are not supported by SimpleHost");
         }
@@ -131,6 +131,10 @@ impl SimpleHost {
                 session_id: 0,
             };
 
+            info!(
+                "Node {}: Sending FloodRequest to {} with flood_id {}",
+                self.id, neighbor_id, flood_id
+            );
             let _ = neighbor_sender.send(packet.clone());
             // Mark this flood_id as pending
             self.pending_floods.insert(flood_id);
@@ -140,10 +144,18 @@ impl SimpleHost {
     fn handle_packet(&mut self, packet: Packet) {
         match packet.pack_type {
             PacketType::FloodResponse(flood_response) => {
+                info!(
+                    "Node {}: Received FloodResponse with flood_id {}",
+                    self.id, flood_response.flood_id
+                );
                 self.handle_flood_response(flood_response);
             }
             PacketType::MsgFragment(fragment) => {
                 // Handle incoming message fragments
+                info!(
+                    "Node {}: Received fragment {} of session {}",
+                    self.id, fragment.fragment_index, packet.session_id
+                );
                 self.handle_message_fragment(packet.session_id, fragment);
             }
             PacketType::Ack(ack) => {
@@ -158,6 +170,10 @@ impl SimpleHost {
                 info!("Node {}: Received Nack {nack:?}", self.id);
             }
             PacketType::FloodRequest(flood_request) => {
+                info!(
+                    "Node {}: Received FloodRequest with flood_id {}",
+                    self.id, flood_request.flood_id
+                );
                 self.handle_flood_request(flood_request, packet.session_id);
             }
         }
@@ -217,6 +233,10 @@ impl SimpleHost {
             .packet_send
             .get(&response_packet.routing_header.hops[1])
         {
+            info!(
+                "Node {}: Sending FloodResponse to initiator {}, next hop {}",
+                self.id, flood_request.initiator_id, response_packet.routing_header.hops[1]
+            );
             let _ = sender.send(response_packet);
         } else {
             warn!(
@@ -301,6 +321,10 @@ impl SimpleHost {
                     }
                 }
                 path.reverse();
+                info!(
+                    "Node {}: Found route to {}: {:?}",
+                    self.id, destination_id, path
+                );
                 return Some(path);
             }
 
