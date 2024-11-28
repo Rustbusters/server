@@ -155,8 +155,8 @@ impl SimpleHost {
                 // Handle Negative Acknowledgments
                 info!("Received Nack {nack:?}");
             }
-            _ => {
-                // Other packet types can be handled here
+            PacketType::FloodRequest(flood_request) => {
+                self.handle_flood_request(flood_request, packet.session_id);
             }
         }
     }
@@ -187,6 +187,34 @@ impl SimpleHost {
 
             info!("Updated topology: {:?}", self.topology);
             info!("Known nodes: {:?}", self.known_nodes);
+        }
+    }
+
+    fn handle_flood_request(&self, flood_request: FloodRequest, session_id: u64) {
+        let mut new_path_trace = flood_request.path_trace.clone();
+        new_path_trace.push((self.id, self.node_type.clone()));
+
+        let flood_response = FloodResponse {
+            flood_id: flood_request.flood_id,
+            path_trace: new_path_trace.clone(),
+        };
+
+        // Create the packet without routing header (it's ignored for FloodResponse)
+        let response_packet = Packet {
+            pack_type: PacketType::FloodResponse(flood_response),
+            routing_header: SourceRoutingHeader {
+                hop_index: 0,
+                hops: new_path_trace.iter().map(|(id, _)| *id).rev().collect(),
+            },
+            session_id,
+        };
+
+        // Send the FloodResponse back to the initiator
+        if let Some(sender) = self.packet_send.get(&response_packet.routing_header.hops[1]) {
+            let _ = sender.send(response_packet);
+        }
+        else{
+            warn!("Cannot send FloodResponse to initiator {}", flood_request.initiator_id);
         }
     }
 
