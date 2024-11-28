@@ -1,7 +1,7 @@
 use crossbeam_channel::{select, Receiver, Sender};
+use log::{debug, error, info, warn};
 use rand::seq::IteratorRandom;
 use rand::{random, rng, Rng};
-use log::{debug, error, info, warn};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::thread;
 use std::time::Duration;
@@ -108,34 +108,33 @@ impl SimpleHost {
     }
 
     fn network_discovery(&mut self) {
-        // Generate a unique flood_id
-        self.flood_id_counter += 1;
-        let flood_id = self.flood_id_counter;
-
-        // Initialize the FloodRequest
-        let flood_request = FloodRequest {
-            flood_id,
-            initiator_id: self.id,
-            path_trace: vec![(self.id, self.node_type.clone())],
-        };
-
-        // Create the packet without routing header (it's ignored for FloodRequest)
-        let packet = Packet {
-            pack_type: PacketType::FloodRequest(flood_request),
-            routing_header: SourceRoutingHeader {
-                hop_index: 0,
-                hops: vec![self.id],
-            },
-            session_id: 0,
-        };
-
         // Send the FloodRequest to all immediate neighbors
         for (&neighbor_id, neighbor_sender) in &self.packet_send {
-            let _ = neighbor_sender.send(packet.clone());
-        }
+            // Generate a unique flood_id
+            self.flood_id_counter += 1;
+            let flood_id = self.flood_id_counter;
 
-        // Mark this flood_id as pending
-        self.pending_floods.insert(flood_id);
+            // Initialize the FloodRequest
+            let flood_request = FloodRequest {
+                flood_id,
+                initiator_id: self.id,
+                path_trace: vec![(self.id, self.node_type.clone())],
+            };
+
+            // Create the packet without routing header (it's ignored for FloodRequest)
+            let packet = Packet {
+                pack_type: PacketType::FloodRequest(flood_request),
+                routing_header: SourceRoutingHeader {
+                    hop_index: 0,
+                    hops: vec![self.id],
+                },
+                session_id: 0,
+            };
+
+            let _ = neighbor_sender.send(packet.clone());
+            // Mark this flood_id as pending
+            self.pending_floods.insert(flood_id);
+        }
     }
 
     fn handle_packet(&mut self, packet: Packet) {
@@ -210,11 +209,16 @@ impl SimpleHost {
         };
 
         // Send the FloodResponse back to the initiator
-        if let Some(sender) = self.packet_send.get(&response_packet.routing_header.hops[1]) {
+        if let Some(sender) = self
+            .packet_send
+            .get(&response_packet.routing_header.hops[1])
+        {
             let _ = sender.send(response_packet);
-        }
-        else{
-            warn!("Cannot send FloodResponse to initiator {}", flood_request.initiator_id);
+        } else {
+            warn!(
+                "Cannot send FloodResponse to initiator {}",
+                flood_request.initiator_id
+            );
         }
     }
 
