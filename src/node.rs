@@ -24,7 +24,6 @@ pub struct SimpleHost {
     topology: HashMap<NodeId, Vec<NodeId>>,
     flood_id_counter: u64,
     session_id_counter: u64,
-    pending_floods: HashSet<u64>,
 }
 
 impl SimpleHost {
@@ -52,7 +51,6 @@ impl SimpleHost {
             topology: HashMap::new(),
             flood_id_counter: rng().random_range(1000..=2000),
             session_id_counter: rng().random_range(100..=200),
-            pending_floods: HashSet::new(),
         }
     }
 
@@ -136,8 +134,6 @@ impl SimpleHost {
                 self.id, neighbor_id, flood_id
             );
             let _ = neighbor_sender.send(packet.clone());
-            // Mark this flood_id as pending
-            self.pending_floods.insert(flood_id);
         }
     }
 
@@ -180,33 +176,28 @@ impl SimpleHost {
     }
 
     fn handle_flood_response(&mut self, flood_response: FloodResponse) {
-        if self.pending_floods.contains(&flood_response.flood_id) {
-            // Process the flood response
-            for window in flood_response.path_trace.windows(2) {
-                if let [(from_id, from_type), (to_id, to_type)] = window {
-                    // Update known nodes
-                    self.known_nodes.insert(*from_id, from_type.clone());
-                    self.known_nodes.insert(*to_id, to_type.clone());
+        // Process the flood response
+        for window in flood_response.path_trace.windows(2) {
+            if let [(from_id, from_type), (to_id, to_type)] = window {
+                // Update known nodes
+                self.known_nodes.insert(*from_id, from_type.clone());
+                self.known_nodes.insert(*to_id, to_type.clone());
 
-                    // Update topology
-                    let from_to = self.topology.entry(*from_id).or_insert_with(Vec::new);
-                    if !from_to.contains(to_id) {
-                        from_to.push(*to_id);
-                    }
+                // Update topology
+                let from_to = self.topology.entry(*from_id).or_insert_with(Vec::new);
+                if !from_to.contains(to_id) {
+                    from_to.push(*to_id);
+                }
 
-                    let to_from = self.topology.entry(*to_id).or_insert_with(Vec::new);
-                    if !to_from.contains(from_id) {
-                        to_from.push(*from_id);
-                    }
+                let to_from = self.topology.entry(*to_id).or_insert_with(Vec::new);
+                if !to_from.contains(from_id) {
+                    to_from.push(*from_id);
                 }
             }
-
-            // Remove the flood_id from pending
-            self.pending_floods.remove(&flood_response.flood_id);
-
-            info!("Node {}: Updated topology: {:?}", self.id, self.topology);
-            info!("Node {}: Known nodes: {:?}", self.id, self.known_nodes);
         }
+
+        info!("Node {}: Updated topology: {:?}", self.id, self.topology);
+        info!("Node {}: Known nodes: {:?}", self.id, self.known_nodes);
     }
 
     fn handle_flood_request(&self, flood_request: FloodRequest, session_id: u64) {
