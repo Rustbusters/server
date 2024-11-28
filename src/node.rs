@@ -202,7 +202,7 @@ impl SimpleHost {
         let response_packet = Packet {
             pack_type: PacketType::FloodResponse(flood_response),
             routing_header: SourceRoutingHeader {
-                hop_index: 0,
+                hop_index: 1,
                 hops: new_path_trace.iter().map(|(id, _)| *id).rev().collect(),
             },
             session_id,
