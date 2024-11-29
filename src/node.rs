@@ -106,29 +106,28 @@ impl SimpleHost {
     }
 
     fn network_discovery(&mut self) {
-        // Send the FloodRequest to all immediate neighbors
+        // Generate a unique flood_id
+        self.flood_id_counter += 1;
+        let flood_id = self.flood_id_counter;
+
+        // Initialize the FloodRequest
+        let flood_request = FloodRequest {
+            flood_id,
+            initiator_id: self.id,
+            path_trace: vec![(self.id, self.node_type.clone())],
+        };
+
+        // Create the packet without routing header (it's ignored for FloodRequest)
+        let packet = Packet {
+            pack_type: PacketType::FloodRequest(flood_request),
+            routing_header: SourceRoutingHeader {
+                hop_index: 0,
+                hops: vec![self.id],
+            },
+            session_id: 0,
+        };
+
         for (&neighbor_id, neighbor_sender) in &self.packet_send {
-            // Generate a unique flood_id
-            self.flood_id_counter += 1;
-            let flood_id = self.flood_id_counter;
-
-            // Initialize the FloodRequest
-            let flood_request = FloodRequest {
-                flood_id,
-                initiator_id: self.id,
-                path_trace: vec![(self.id, self.node_type.clone())],
-            };
-
-            // Create the packet without routing header (it's ignored for FloodRequest)
-            let packet = Packet {
-                pack_type: PacketType::FloodRequest(flood_request),
-                routing_header: SourceRoutingHeader {
-                    hop_index: 0,
-                    hops: vec![self.id],
-                },
-                session_id: 0,
-            };
-
             info!(
                 "Node {}: Sending FloodRequest to {} with flood_id {}",
                 self.id, neighbor_id, flood_id
