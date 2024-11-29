@@ -5,6 +5,13 @@ use wg_2024::packet::{Packet, PacketType};
 impl SimpleHost {
     pub(crate) fn handle_packet(&mut self, packet: Packet) {
         match packet.pack_type {
+            PacketType::FloodRequest(flood_request) => {
+                info!(
+                    "Node {}: Received FloodRequest with flood_id {}",
+                    self.id, flood_request.flood_id
+                );
+                self.handle_flood_request(flood_request, packet.session_id);
+            }
             PacketType::FloodResponse(flood_response) => {
                 info!(
                     "Node {}: Received FloodResponse with flood_id {}",
@@ -26,17 +33,12 @@ impl SimpleHost {
                     "Node {}: Received Ack for fragment {}",
                     self.id, ack.fragment_index
                 );
+                self.stats.inc_acks_received();
             }
             PacketType::Nack(nack) => {
                 // Handle Negative Acknowledgments
                 info!("Node {}: Received Nack {nack:?}", self.id);
-            }
-            PacketType::FloodRequest(flood_request) => {
-                info!(
-                    "Node {}: Received FloodRequest with flood_id {}",
-                    self.id, flood_request.flood_id
-                );
-                self.handle_flood_request(flood_request, packet.session_id);
+                // TODO: handle Nacks -> update stats, keep track of pending packets
             }
         }
     }

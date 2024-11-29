@@ -3,6 +3,7 @@ mod packet_sender;
 mod fragmenter;
 mod router;
 mod handlers;
+mod stats;
 
 use crossbeam_channel::{select, Receiver, Sender};
 use log::{error, info};
@@ -15,6 +16,7 @@ use wg_2024::controller::{DroneCommand, NodeEvent};
 use wg_2024::network::{NodeId};
 use wg_2024::packet::{NodeType, Packet};
 use wg_2024::packet::NodeType::{Client, Drone, Server};
+use crate::node::stats::Stats;
 
 pub struct SimpleHost {
     id: NodeId,
@@ -27,6 +29,7 @@ pub struct SimpleHost {
     topology: HashMap<NodeId, Vec<NodeId>>,
     flood_id_counter: u64,
     session_id_counter: u64,
+    stats: Stats,
 }
 
 impl SimpleHost {
@@ -54,6 +57,7 @@ impl SimpleHost {
             topology: HashMap::new(),
             flood_id_counter: rng().random_range(1000..=2000),
             session_id_counter: rng().random_range(100..=200),
+            stats: Stats::default(),
         }
     }
 

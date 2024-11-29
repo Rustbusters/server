@@ -16,6 +16,12 @@ impl SimpleHost {
             self.id, fragment.fragment_index, session_id
         );
 
+        // Increment the number of received fragments
+        self.stats.inc_fragments_received();
+        
+        // TODO: count of full messages received
+        // (può servire una variabile per mantenere eventuali pacchetti in pending all'arrivo di nacks)
+
         // Send an Acknowledgment
         let ack = Ack {
             fragment_index: fragment.fragment_index,
@@ -40,6 +46,9 @@ impl SimpleHost {
 
         if let Some(sender) = self.packet_send.get(&next_hop) {
             let _ = sender.send(ack_packet);
+            
+            // Increment the number of sent Acks
+            self.stats.inc_acks_sent()
         }
 
         info!(
