@@ -378,7 +378,7 @@ impl SimpleHost {
             pack_type: PacketType::Ack(ack),
             routing_header: SourceRoutingHeader {
                 hop_index: 1,
-                hops: source_routing_header.hops.iter().rev().collect(),
+                hops: source_routing_header.hops.iter().rev().cloned().collect::<Vec<NodeId>>(),
             },
             session_id,
         };
