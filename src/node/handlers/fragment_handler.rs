@@ -11,11 +11,6 @@ impl SimpleHost {
         source_routing_header: SourceRoutingHeader,
     ) {
         // Handle incoming message fragments (reassembly not implemented for simplicity)
-        info!(
-            "Node {}: Received fragment {} of session {}",
-            self.id, fragment.fragment_index, session_id
-        );
-
         // Increment the number of received fragments
         self.stats.inc_fragments_received();
         
@@ -47,8 +42,8 @@ impl SimpleHost {
             }
 
             info!(
-                "Node {}: Sent fragment {} back to {}",
-                self.id, fragment_index, next_hop
+                "Node {}: Echo to fragment {} of session {}",
+                self.id, fragment_index, session_id
             );
         }
 

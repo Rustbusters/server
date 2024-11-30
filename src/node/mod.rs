@@ -4,6 +4,7 @@ mod networ_discovery;
 mod packet_sender;
 mod router;
 mod stats;
+mod commands;
 
 use crate::node::stats::Stats;
 use crossbeam_channel::{select, Receiver, Sender};
@@ -16,6 +17,7 @@ use wg_2024::controller::{DroneCommand, NodeEvent};
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{NodeType, Packet};
+use crate::node::commands::HostCommand;
 
 pub struct SimpleHost {
     id: NodeId,
@@ -23,7 +25,7 @@ pub struct SimpleHost {
     #[allow(dead_code)]
     controller_send: Sender<NodeEvent>,
     #[allow(dead_code)]
-    controller_recv: Receiver<DroneCommand>,
+    controller_recv: Receiver<HostCommand>,
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
     known_nodes: HashMap<NodeId, NodeType>,
@@ -41,7 +43,7 @@ impl SimpleHost {
         id: NodeId,
         node_type: NodeType,
         controller_send: Sender<NodeEvent>,
-        controller_recv: Receiver<DroneCommand>,
+        controller_recv: Receiver<HostCommand>,
         packet_recv: Receiver<Packet>,
         packet_send: HashMap<NodeId, Sender<Packet>>,
     ) -> Self {
@@ -134,7 +136,7 @@ impl SimpleHost {
                 // Handle SC commands
                 recv(self.controller_recv) -> command => {
                     if let Ok(cmd) = command {
-                        unimplemented!("Received command: {:?}", cmd);
+                        self.handle_command(cmd);
                     } else {
                         // Channel closed
                         break;
