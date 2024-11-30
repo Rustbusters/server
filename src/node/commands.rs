@@ -1,5 +1,5 @@
 use wg_2024::network::NodeId;
-use crate::SimpleHost;
+use crate::node::SimpleHost;
 
 #[derive(Debug, Clone)]
 pub enum HostCommand {

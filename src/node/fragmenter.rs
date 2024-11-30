@@ -1,4 +1,4 @@
-use crate::SimpleHost;
+use crate::node::SimpleHost;
 use rand::{random, rng, Rng};
 use wg_2024::packet::Fragment;
 

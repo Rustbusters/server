@@ -1,6 +1,6 @@
 use log::{info, warn};
 use wg_2024::network::SourceRoutingHeader;
-use crate::SimpleHost;
+use crate::node::SimpleHost;
 use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType};
 
 impl SimpleHost {

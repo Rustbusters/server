@@ -1,4 +1,4 @@
-use crate::SimpleHost;
+use crate::node::SimpleHost;
 use log::info;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, Packet, PacketType};

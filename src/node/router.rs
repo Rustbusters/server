@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use log::info;
-use crate::SimpleHost;
+use crate::node::SimpleHost;
 use wg_2024::network::NodeId;
 
 impl SimpleHost {

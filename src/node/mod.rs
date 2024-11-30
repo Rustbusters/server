@@ -17,7 +17,7 @@ use wg_2024::controller::{NodeEvent};
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{NodeType, Packet};
-use crate::node::commands::HostCommand;
+use commands::HostCommand;
 
 pub struct SimpleHost {
     id: NodeId,
