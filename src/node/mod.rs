@@ -4,7 +4,7 @@ mod networ_discovery;
 mod packet_sender;
 mod router;
 mod stats;
-mod commands;
+pub mod commands;
 
 use crate::node::stats::Stats;
 use crossbeam_channel::{select, Receiver, Sender};
@@ -13,7 +13,7 @@ use rand::seq::IteratorRandom;
 use rand::{rng, Rng};
 use std::collections::HashMap;
 use std::time::Duration;
-use wg_2024::controller::{DroneCommand, NodeEvent};
+use wg_2024::controller::{NodeEvent};
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{NodeType, Packet};
@@ -24,7 +24,6 @@ pub struct SimpleHost {
     node_type: NodeType,
     #[allow(dead_code)]
     controller_send: Sender<NodeEvent>,
-    #[allow(dead_code)]
     controller_recv: Receiver<HostCommand>,
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
@@ -70,23 +69,19 @@ impl SimpleHost {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn echo_mode_on(&mut self) {
         self.echo_mode = true;
     }
 
-    #[allow(dead_code)]
     pub(crate) fn echo_mode_off(&mut self) {
         self.echo_mode = false;
     }
 
-    #[allow(dead_code)]
     pub(crate) fn auto_send_on(&mut self, interval: u64) {
         self.auto_send = true;
         self.auto_send_interval = interval;
     }
 
-    #[allow(dead_code)]
     pub(crate) fn auto_send_off(&mut self) {
         self.auto_send = false;
     }

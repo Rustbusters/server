@@ -1,4 +1,3 @@
-use log::info;
 use wg_2024::network::NodeId;
 use crate::SimpleHost;
 
@@ -6,6 +5,10 @@ use crate::SimpleHost;
 pub enum HostCommand {
     SendRandomMessage(NodeId),
     DiscoverNetwork,
+    EnableEchoMode,
+    DisableEchoMode,
+    EnableAutoSend(u64),
+    DisableAutoSend,
 }
 
 impl SimpleHost {
@@ -16,7 +19,19 @@ impl SimpleHost {
             }
             HostCommand::DiscoverNetwork => {
                 self.discover_network();
-            }
+            },
+            HostCommand::EnableEchoMode => {
+                self.echo_mode_on();
+            },
+            HostCommand::DisableEchoMode => {
+                self.echo_mode_off();
+            },
+            HostCommand::EnableAutoSend(interval) => {
+                self.auto_send_on(interval);
+            },
+            HostCommand::DisableAutoSend => {
+                self.auto_send_off();
+            },
         }
     }
 }
