@@ -6,8 +6,8 @@ use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
 impl SimpleHost {
     pub(crate) fn handle_message_fragment(
         &mut self,
-        session_id: u64,
         fragment: Fragment,
+        session_id: u64,
         source_routing_header: SourceRoutingHeader,
     ) {
         // Handle incoming message fragments (reassembly not implemented for simplicity)
@@ -21,10 +21,40 @@ impl SimpleHost {
         
         // TODO: count of full messages received
         // (può servire una variabile per mantenere eventuali pacchetti in pending all'arrivo di nacks)
+        
+        // Echo mode
+        let fragment_index = fragment.fragment_index;
+        if self.echo_mode {
+            // Send the fragment back to the sender
+            let packet = Packet {
+                pack_type: PacketType::MsgFragment(fragment),
+                routing_header: SourceRoutingHeader {
+                    hop_index: 1,
+                    hops: source_routing_header
+                        .hops
+                        .iter()
+                        .rev()
+                        .cloned()
+                        .collect::<Vec<NodeId>>(),
+                },
+                session_id,
+            };
+
+            let next_hop = packet.routing_header.hops[1];
+
+            if let Some(sender) = self.packet_send.get(&next_hop) {
+                let _ = sender.send(packet);
+            }
+
+            info!(
+                "Node {}: Sent fragment {} back to {}",
+                self.id, fragment_index, next_hop
+            );
+        }
 
         // Send an Acknowledgment
         let ack = Ack {
-            fragment_index: fragment.fragment_index,
+            fragment_index,
         };
 
         let ack_packet = Packet {
@@ -53,7 +83,7 @@ impl SimpleHost {
 
         info!(
             "Node {}: Sent Ack for fragment {} to {}",
-            self.id, fragment.fragment_index, next_hop
+            self.id, fragment_index, next_hop
         );
     }
 }

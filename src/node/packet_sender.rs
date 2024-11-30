@@ -29,8 +29,10 @@ impl SimpleHost {
                 let next_hop = packet.routing_header.hops[1];
                 if let Some(sender) = self.packet_send.get(&next_hop) {
                     let _ = sender.send(packet);
+                    self.stats.inc_fragments_sent();
                 }
             }
+            self.stats.inc_messages_sent();
 
             info!(
                 "Node {}: Sent message to {} via route {:?}",

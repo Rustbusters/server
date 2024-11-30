@@ -36,6 +36,7 @@ impl Stats {
         self.fragments_sent += 1;
     }
 
+    #[allow(dead_code)] // TODO: to be used in the future
     pub(crate) fn inc_messages_received(&mut self) {
         self.messages_received += 1;
     }
