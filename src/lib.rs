@@ -1,4 +1,4 @@
-pub mod node;
+mod node;
 
 pub use node::SimpleHost;
 pub use node::commands;
