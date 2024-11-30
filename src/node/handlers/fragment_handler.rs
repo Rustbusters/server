@@ -24,7 +24,7 @@ impl SimpleHost {
         
         // Echo mode
         let fragment_index = fragment.fragment_index;
-        if self.echo_mode {
+        if self.echo_mode && session_id != 0 { 
             // Send the fragment back to the sender
             let packet = Packet {
                 pack_type: PacketType::MsgFragment(fragment),
@@ -37,7 +37,7 @@ impl SimpleHost {
                         .cloned()
                         .collect::<Vec<NodeId>>(),
                 },
-                session_id,
+                session_id: 0, // TODO: find a better way to handle this (echo only one time when session_id is not 0)
             };
 
             let next_hop = packet.routing_header.hops[1];
