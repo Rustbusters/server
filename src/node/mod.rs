@@ -12,7 +12,7 @@ use crossbeam_channel::{select, Receiver, Sender};
 use log::{error, info};
 use rand::seq::IteratorRandom;
 use rand::{rng, Rng};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use wg_2024::controller::NodeEvent;
 use wg_2024::network::NodeId;
@@ -31,6 +31,8 @@ pub struct SimpleHost {
     topology: HashMap<NodeId, Vec<NodeId>>,
     flood_id_counter: u64,
     session_id_counter: u64,
+    pending_sent: HashMap<(u64, u64), Packet>, // (session_id, fragment_index) -> packet
+    pending_received: HashMap<u64, HashSet<u64>>, // session_id -> {packet_index} (for reassembly)
     stats: Stats,
     echo_mode: bool,
     auto_send: bool,
@@ -62,6 +64,8 @@ impl SimpleHost {
             topology: HashMap::new(),
             flood_id_counter: rng().random_range(1000..=2000),
             session_id_counter: rng().random_range(100..=200),
+            pending_sent: HashMap::new(),
+            pending_received: HashMap::new(),
             stats: Stats::default(),
             echo_mode: false,
             auto_send: false,

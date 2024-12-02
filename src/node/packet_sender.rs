@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use crate::node::SimpleHost;
 use log::info;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
@@ -16,6 +17,7 @@ impl SimpleHost {
 
             // Send the fragments along the route
             for fragment in fragments {
+                let fragment_index = fragment.fragment_index;
                 let packet = Packet {
                     pack_type: PacketType::MsgFragment(fragment),
                     routing_header: SourceRoutingHeader {
@@ -28,7 +30,8 @@ impl SimpleHost {
                 // Send the packet to the first hop
                 let next_hop = packet.routing_header.hops[1];
                 if let Some(sender) = self.packet_send.get(&next_hop) {
-                    let _ = sender.send(packet);
+                    let _ = sender.send(packet.clone());
+                    self.pending_sent.entry((session_id, fragment_index)).or_insert(packet);
                     self.stats.inc_fragments_sent();
                 }
             }

@@ -33,13 +33,12 @@ impl SimpleHost {
                     "Node {}: Received Ack for fragment {}",
                     self.id, ack.fragment_index
                 );
-                self.stats.inc_acks_received();
+                self.handle_ack(packet.session_id, ack.fragment_index);
             }
             PacketType::Nack(nack) => {
                 // Handle Negative Acknowledgments
                 info!("Node {}: Received Nack {nack:?}", self.id);
-                self.stats.inc_nacks_received();
-                // TODO: handle Nacks -> keep track of pending packets
+                self.handle_nack(packet.session_id, nack.fragment_index, nack.nack_type);
             }
         }
     }
