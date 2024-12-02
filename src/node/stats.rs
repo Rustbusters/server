@@ -59,6 +59,7 @@ impl Stats {
 }
 
 // Getters
+#[allow(dead_code)] // TODO: to be used in the future
 impl Stats {
     pub fn get_messages_sent(&self) -> u64 {
         self.messages_sent

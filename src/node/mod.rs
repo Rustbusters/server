@@ -1,23 +1,23 @@
+pub mod commands;
 mod fragmenter;
 mod handlers;
 mod networ_discovery;
 mod packet_sender;
 mod router;
 mod stats;
-pub mod commands;
 
 use crate::node::stats::Stats;
+use commands::HostCommand;
 use crossbeam_channel::{select, Receiver, Sender};
 use log::{error, info};
 use rand::seq::IteratorRandom;
 use rand::{rng, Rng};
 use std::collections::HashMap;
 use std::time::Duration;
-use wg_2024::controller::{NodeEvent};
+use wg_2024::controller::NodeEvent;
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{NodeType, Packet};
-use commands::HostCommand;
 
 pub struct SimpleHost {
     id: NodeId,
@@ -96,21 +96,32 @@ impl SimpleHost {
 
         let mut last_send_time = std::time::Instant::now();
 
+        // Retain only servers if the node is a client and viceversa
+        let mut reachable_hosts = self.known_nodes.clone();
+        reachable_hosts.retain(|&_id, node_type| match self.node_type {
+            Client => matches!(node_type, Server),
+            Server => matches!(node_type, Client),
+            _ => false,
+        });
+
         loop {
-            if self.auto_send && last_send_time.elapsed() >= Duration::from_millis(self.auto_send_interval)
+            if self.auto_send
+                && last_send_time.elapsed() >= Duration::from_millis(self.auto_send_interval)
             {
                 last_send_time = std::time::Instant::now();
 
-                let mut hosts = self.known_nodes.clone();
-                hosts.retain(|&_id, node_type| matches!(node_type, Client | Server));
-
                 // Choose a random node to send a message to
-                if !hosts.is_empty() {
-                    if let Some(&random_node_id) =
-                        hosts.keys().filter(|&&id| id != self.id).choose(&mut rng)
+                if !reachable_hosts.is_empty() {
+                    if let Some(&random_node_id) = reachable_hosts
+                        .keys()
+                        .filter(|&&id| id != self.id)
+                        .choose(&mut rng)
                     {
                         // Send a message to the random node
-                        println!("Node {}: Send a message to node {}", self.id, random_node_id);
+                        println!(
+                            "Node {}: Send a message to node {}",
+                            self.id, random_node_id
+                        );
                         info!("Node {}: Send a message to node {random_node_id}", self.id);
                         self.send_random_message(random_node_id);
                     }

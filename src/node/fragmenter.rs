@@ -1,6 +1,6 @@
 use crate::node::SimpleHost;
 use rand::{random, rng, Rng};
-use wg_2024::packet::Fragment;
+use wg_2024::packet::{Fragment, FRAGMENT_DSIZE};
 
 impl SimpleHost {
     pub(crate) fn generate_random_fragments(&self) -> Vec<Fragment> {
@@ -16,7 +16,7 @@ impl SimpleHost {
         let mut fragments = Vec::new();
 
         for (i, chunk) in serialized_data.chunks(chunk_size).enumerate() {
-            let mut data_array = [0u8; 80];
+            let mut data_array = [0u8; FRAGMENT_DSIZE];
             let length = chunk.len();
             data_array[..length].copy_from_slice(chunk);
 
