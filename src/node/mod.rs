@@ -100,19 +100,19 @@ impl SimpleHost {
 
         let mut last_send_time = std::time::Instant::now();
 
-        // Retain only servers if the node is a client and viceversa
-        let mut reachable_hosts = self.known_nodes.clone();
-        reachable_hosts.retain(|&_id, node_type| match self.node_type {
-            Client => matches!(node_type, Server),
-            Server => matches!(node_type, Client),
-            _ => false,
-        });
-
         loop {
             if self.auto_send
                 && last_send_time.elapsed() >= Duration::from_millis(self.auto_send_interval)
             {
                 last_send_time = std::time::Instant::now();
+
+                // Retain only servers if the node is a client and viceversa
+                let mut reachable_hosts = self.known_nodes.clone();
+                reachable_hosts.retain(|&_id, node_type| match self.node_type {
+                    Client => *node_type == Server,
+                    Server => *node_type == Client,
+                    _ => false,
+                });
 
                 // Choose a random node to send a message to
                 if !reachable_hosts.is_empty() {
@@ -129,6 +129,9 @@ impl SimpleHost {
                         info!("Node {}: Send a message to node {random_node_id}", self.id);
                         self.send_random_message(random_node_id);
                     }
+                }
+                else { 
+                    info!("Node {}: No reachable hosts", self.id);
                 }
             }
 
