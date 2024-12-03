@@ -1,7 +1,8 @@
 use crate::node::SimpleHost;
-use log::info;
+use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
+use crate::commands::HostEvent;
 
 impl SimpleHost {
     pub(crate) fn handle_message_fragment(
@@ -10,16 +11,29 @@ impl SimpleHost {
         session_id: u64,
         source_routing_header: SourceRoutingHeader,
     ) {
-        // Handle incoming message fragments (reassembly not implemented for simplicity)
         // Increment the number of received fragments
         self.stats.inc_fragments_received();
-        
-        // TODO: count of full messages received
-        // (può servire una variabile per mantenere eventuali pacchetti in pending all'arrivo di nacks)
-        
+
+        // If after insert all fragments of the session are received, reassemble the message
+        if self.set_pending(session_id, fragment.clone()) {
+            match self.reassemble_fragments(session_id) {
+                Ok(msg) => {
+                    info!(
+                        "Node {}: Received full message {:?} of session {}",
+                        self.id, msg, session_id
+                    );
+                    self.stats.inc_messages_received();
+                    let _ = self.controller_send.send(HostEvent::MessageReceived(msg));
+                }
+                Err(err) => {
+                    warn!("Node {}: {}", self.id, err);
+                }
+            }
+        }
+
         // Echo mode
         let fragment_index = fragment.fragment_index;
-        if self.echo_mode && session_id != 0 { 
+        if self.echo_mode && session_id != 0 {
             // Send the fragment back to the sender
             let packet = Packet {
                 pack_type: PacketType::MsgFragment(fragment),
@@ -48,9 +62,7 @@ impl SimpleHost {
         }
 
         // Send an Acknowledgment
-        let ack = Ack {
-            fragment_index,
-        };
+        let ack = Ack { fragment_index };
 
         let ack_packet = Packet {
             pack_type: PacketType::Ack(ack),
@@ -71,7 +83,7 @@ impl SimpleHost {
 
         if let Some(sender) = self.packet_send.get(&next_hop) {
             let _ = sender.send(ack_packet);
-            
+
             // Increment the number of sent Acks
             self.stats.inc_acks_sent()
         }
@@ -80,5 +92,20 @@ impl SimpleHost {
             "Node {}: Sent Ack for fragment {} to {}",
             self.id, fragment_index, next_hop
         );
+    }
+
+    /// Insert the fragment in the pending_received map at index fragment_index.
+    /// 
+    /// Return true if all fragments have been received
+    fn set_pending(&mut self, session_id: u64, fragment: Fragment) -> bool {
+        let fragment_index = fragment.fragment_index;
+        let total_n_fragments = fragment.total_n_fragments;
+        // insert the fragment in the pending_received map at index fragment_index
+        let fragments = vec![None; fragment.total_n_fragments as usize];
+        let entry = self.pending_received.entry(session_id).or_insert((fragments, 0));
+        entry.0[fragment_index as usize] = Some(fragment);
+        entry.1 += 1;
+        
+        entry.1 == total_n_fragments
     }
 }

@@ -1,8 +1,9 @@
-use std::collections::HashSet;
+use crate::node::messages::Message;
 use crate::node::SimpleHost;
-use log::info;
+use log::{debug, info};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Packet, PacketType};
+use crate::commands::HostEvent;
 
 impl SimpleHost {
     pub(crate) fn send_random_message(&mut self, destination_id: NodeId) {
@@ -12,11 +13,24 @@ impl SimpleHost {
             self.session_id_counter += 1;
             let session_id = self.session_id_counter;
 
-            // Serialize and fragment the message
-            let fragments = self.generate_random_fragments(/*&message_data*/);
+            // // Serialize and fragment the message
+            let message = Message::Custom(
+                format!("Hello from {} with session {}. This is a random message. Bla Bla Bla Things\
+                 to make the message longer for testing purposes and see if and how fragmentation \
+                 works. I hope it works. QuackableQuackableQuackableQuackableQuackableQuackableQuackable\
+                 QuackableQuackableQuackableQuackableQuackable", self.id, session_id
+                )
+            );
+            let fragments = self.disassemble_message(message.clone());
+
+            // let fragments = self.generate_random_fragments();
 
             // Send the fragments along the route
             for fragment in fragments {
+                debug!(
+                    "Node {}: Sending fragment {:?} of session {} to {}",
+                    self.id, fragment, session_id, destination_id
+                );
                 let fragment_index = fragment.fragment_index;
                 let packet = Packet {
                     pack_type: PacketType::MsgFragment(fragment),
@@ -31,11 +45,14 @@ impl SimpleHost {
                 let next_hop = packet.routing_header.hops[1];
                 if let Some(sender) = self.packet_send.get(&next_hop) {
                     let _ = sender.send(packet.clone());
-                    self.pending_sent.entry((session_id, fragment_index)).or_insert(packet);
+                    self.pending_sent
+                        .entry((session_id, fragment_index))
+                        .or_insert(packet);
                     self.stats.inc_fragments_sent();
                 }
             }
             self.stats.inc_messages_sent();
+            let _ = self.controller_send.send(HostEvent::MessageSent(message));
 
             info!(
                 "Node {}: Sent message to {} via route {:?}",

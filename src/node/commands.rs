@@ -1,4 +1,5 @@
 use wg_2024::network::NodeId;
+use crate::node::messages::Message;
 use crate::node::SimpleHost;
 
 #[derive(Debug, Clone)]
@@ -9,6 +10,12 @@ pub enum HostCommand {
     DisableEchoMode,
     EnableAutoSend(u64),
     DisableAutoSend,
+}
+
+#[derive(Debug, Clone)]
+pub enum HostEvent{
+    MessageSent(Message),
+    MessageReceived(Message),
 }
 
 impl SimpleHost {

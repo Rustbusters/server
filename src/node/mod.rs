@@ -1,6 +1,8 @@
+mod assembler;
 pub mod commands;
-mod fragmenter;
+mod disassembler;
 mod handlers;
+mod messages;
 mod networ_discovery;
 mod packet_sender;
 mod router;
@@ -14,16 +16,15 @@ use rand::seq::IteratorRandom;
 use rand::{rng, Rng};
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
-use wg_2024::controller::NodeEvent;
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
-use wg_2024::packet::{NodeType, Packet};
+use wg_2024::packet::{Fragment, NodeType, Packet};
+use crate::commands::HostEvent;
 
 pub struct SimpleHost {
     id: NodeId,
     node_type: NodeType,
-    #[allow(dead_code)]
-    controller_send: Sender<NodeEvent>,
+    controller_send: Sender<HostEvent>,
     controller_recv: Receiver<HostCommand>,
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
@@ -31,8 +32,10 @@ pub struct SimpleHost {
     topology: HashMap<NodeId, Vec<NodeId>>,
     flood_id_counter: u64,
     session_id_counter: u64,
-    pending_sent: HashMap<(u64, u64), Packet>, // (session_id, fragment_index) -> packet
-    pending_received: HashMap<u64, HashSet<u64>>, // session_id -> {packet_index} (for reassembly)
+    // (session_id, fragment_index) -> packet
+    pending_sent: HashMap<(u64, u64), Packet>,
+    // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
+    pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>,
     stats: Stats,
     echo_mode: bool,
     auto_send: bool,
@@ -43,7 +46,7 @@ impl SimpleHost {
     pub fn new(
         id: NodeId,
         node_type: NodeType,
-        controller_send: Sender<NodeEvent>,
+        controller_send: Sender<HostEvent>,
         controller_recv: Receiver<HostCommand>,
         packet_recv: Receiver<Packet>,
         packet_send: HashMap<NodeId, Sender<Packet>>,
@@ -68,8 +71,8 @@ impl SimpleHost {
             pending_received: HashMap::new(),
             stats: Stats::default(),
             echo_mode: false,
-            auto_send: false,
-            auto_send_interval: 0,
+            auto_send: id == 4,
+            auto_send_interval: 5000,
         }
     }
 
@@ -129,8 +132,7 @@ impl SimpleHost {
                         info!("Node {}: Send a message to node {random_node_id}", self.id);
                         self.send_random_message(random_node_id);
                     }
-                }
-                else { 
+                } else {
                     info!("Node {}: No reachable hosts", self.id);
                 }
             }
