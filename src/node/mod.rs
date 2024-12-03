@@ -71,8 +71,8 @@ impl SimpleHost {
             pending_received: HashMap::new(),
             stats: Stats::default(),
             echo_mode: false,
-            auto_send: id == 4,
-            auto_send_interval: 5000,
+            auto_send: false,
+            auto_send_interval: 0,
         }
     }
 
