@@ -1,4 +1,5 @@
-pub(crate) struct Stats {
+#[derive(Clone, Debug)]
+pub struct Stats {
     messages_sent: u64,
     fragments_sent: u64,
 

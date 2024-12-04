@@ -1,6 +1,7 @@
 use wg_2024::network::NodeId;
 use crate::node::messages::Message;
 use crate::node::SimpleHost;
+use crate::node::stats::Stats;
 
 #[derive(Debug, Clone)]
 pub enum HostCommand {
@@ -10,12 +11,14 @@ pub enum HostCommand {
     DisableEchoMode,
     EnableAutoSend(u64),
     DisableAutoSend,
+    StatsRequest,
 }
 
 #[derive(Debug, Clone)]
 pub enum HostEvent{
     MessageSent(Message),
     MessageReceived(Message),
+    StatsResponse(Stats),
 }
 
 impl SimpleHost {
@@ -39,6 +42,9 @@ impl SimpleHost {
             HostCommand::DisableAutoSend => {
                 self.auto_send_off();
             },
+            HostCommand::StatsRequest => {
+                let _ = self.controller_send.send(HostEvent::StatsResponse(self.stats.clone()));
+            }
         }
     }
 }
