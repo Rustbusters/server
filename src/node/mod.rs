@@ -6,7 +6,7 @@ mod messages;
 mod networ_discovery;
 mod packet_sender;
 mod router;
-mod stats;
+pub(crate) mod stats;
 
 use crate::node::stats::Stats;
 use commands::HostCommand;
@@ -76,20 +76,20 @@ impl SimpleHost {
         }
     }
 
-    pub(crate) fn echo_mode_on(&mut self) {
+    pub fn echo_mode_on(&mut self) {
         self.echo_mode = true;
     }
 
-    pub(crate) fn echo_mode_off(&mut self) {
+    pub fn echo_mode_off(&mut self) {
         self.echo_mode = false;
     }
 
-    pub(crate) fn auto_send_on(&mut self, interval: u64) {
+    pub fn auto_send_on(&mut self, interval: u64) {
         self.auto_send = true;
         self.auto_send_interval = interval;
     }
 
-    pub(crate) fn auto_send_off(&mut self) {
+    pub fn auto_send_off(&mut self) {
         self.auto_send = false;
     }
 
