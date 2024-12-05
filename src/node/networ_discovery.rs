@@ -21,7 +21,7 @@ impl SimpleHost {
             pack_type: PacketType::FloodRequest(flood_request),
             routing_header: SourceRoutingHeader {
                 hop_index: 0,
-                hops: vec![self.id],
+                hops: vec![],
             },
             session_id: 0,
         };
