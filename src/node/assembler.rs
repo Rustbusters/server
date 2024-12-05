@@ -1,4 +1,4 @@
-use log::{debug, warn};
+use log::debug;
 use crate::node::messages::Message;
 use crate::node::SimpleHost;
 

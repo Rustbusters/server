@@ -1,7 +1,6 @@
-use crate::node::SimpleHost;
-use rand::{random, rng, Rng};
-use wg_2024::packet::{Fragment, FRAGMENT_DSIZE};
 use crate::node::messages::Message;
+use crate::node::SimpleHost;
+use wg_2024::packet::{Fragment, FRAGMENT_DSIZE};
 
 impl SimpleHost {    
     pub(crate) fn disassemble_message(&self, message: Message) -> Vec<Fragment> {

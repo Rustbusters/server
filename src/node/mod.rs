@@ -14,7 +14,7 @@ use crossbeam_channel::{select, Receiver, Sender};
 use log::{error, info};
 use rand::seq::IteratorRandom;
 use rand::{rng, Rng};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::time::Duration;
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
@@ -114,7 +114,7 @@ impl SimpleHost {
                 reachable_hosts.retain(|&_id, node_type| match self.node_type {
                     Client => *node_type == Server,
                     Server => *node_type == Client,
-                    _ => false,
+                    Drone => false,
                 });
 
                 // Choose a random node to send a message to

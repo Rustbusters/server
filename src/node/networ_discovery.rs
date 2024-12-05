@@ -13,7 +13,7 @@ impl SimpleHost {
         let flood_request = FloodRequest {
             flood_id,
             initiator_id: self.id,
-            path_trace: vec![(self.id, self.node_type.clone())],
+            path_trace: vec![(self.id, self.node_type)],
         };
 
         // Create the packet without routing header (it's ignored for FloodRequest)

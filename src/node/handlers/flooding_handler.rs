@@ -1,14 +1,15 @@
-use log::{info, warn};
-use wg_2024::network::SourceRoutingHeader;
 use crate::node::SimpleHost;
+use log::info;
+use log::warn;
+use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType};
 
 impl SimpleHost {
     pub(crate) fn handle_flood_response(&mut self, flood_response: FloodResponse) {
         for window in flood_response.path_trace.windows(2) {
             if let [(from_id, from_type), (to_id, to_type)] = window {
-                self.known_nodes.insert(*from_id, from_type.clone());
-                self.known_nodes.insert(*to_id, to_type.clone());
+                self.known_nodes.insert(*from_id, *from_type);
+                self.known_nodes.insert(*to_id, *to_type);
 
                 // Update topology
                 let from_to = self.topology.entry(*from_id).or_default();
@@ -29,7 +30,7 @@ impl SimpleHost {
 
     pub(crate) fn handle_flood_request(&mut self, flood_request: FloodRequest, session_id: u64) {
         let mut new_path_trace = flood_request.path_trace.clone();
-        new_path_trace.push((self.id, self.node_type.clone()));
+        new_path_trace.push((self.id, self.node_type));
 
         let flood_response = FloodResponse {
             flood_id: flood_request.flood_id,
