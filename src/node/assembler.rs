@@ -1,4 +1,3 @@
-use log::debug;
 use crate::node::messages::Message;
 use crate::node::SimpleHost;
 
@@ -17,8 +16,6 @@ impl SimpleHost {
                             }
                             None => Err("Frammento mancante"),
                         });
-                
-                debug!("Concat. Fragments: {:?}", concatenated);
                 
                 if let Ok(byte_array) = concatenated {
                     // Trova la lunghezza effettiva della stringa (fino al primo zero)

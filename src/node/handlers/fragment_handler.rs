@@ -2,7 +2,7 @@ use crate::node::SimpleHost;
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
-use crate::commands::HostEvent;
+use crate::commands::HostEvent::MessageReceived;
 
 impl SimpleHost {
     pub(crate) fn handle_message_fragment(
@@ -11,7 +11,7 @@ impl SimpleHost {
         session_id: u64,
         source_routing_header: SourceRoutingHeader,
     ) {
-        // Increment the number of received fragments
+        // Update stats
         self.stats.inc_fragments_received();
 
         // If after insert all fragments of the session are received, reassemble the message
@@ -23,7 +23,9 @@ impl SimpleHost {
                         self.id, msg, session_id
                     );
                     self.stats.inc_messages_received();
-                    let _ = self.controller_send.send(HostEvent::MessageReceived(msg));
+                    if let Err(err) = self.controller_send.send(MessageReceived(msg)) {
+                        warn!("Node {}: Unable to send MessageReceived(...) to controller: {}", self.id, err);
+                    }
                 }
                 Err(err) => {
                     warn!("Node {}: {}", self.id, err);
@@ -82,16 +84,22 @@ impl SimpleHost {
         let next_hop = ack_packet.routing_header.hops[1];
 
         if let Some(sender) = self.packet_send.get(&next_hop) {
-            let _ = sender.send(ack_packet);
-
-            // Increment the number of sent Acks
-            self.stats.inc_acks_sent()
+            if let Err(err) = sender.send(ack_packet){
+                warn!("Node {}: Error sending Ack for fragment {} to {}: {}", self.id, fragment_index, next_hop, err);
+            } else {
+                // Increment the number of sent Acks
+                self.stats.inc_acks_sent();
+                info!(
+                    "Node {}: Sent Ack for fragment {} to {}",
+                    self.id, fragment_index, next_hop
+                );
+            }
+        } else {
+            warn!(
+                "Node {}: Cannot send Ack for fragment {} to {}",
+                self.id, fragment_index, next_hop
+            );
         }
-
-        info!(
-            "Node {}: Sent Ack for fragment {} to {}",
-            self.id, fragment_index, next_hop
-        );
     }
 
     /// Insert the fragment in the pending_received map at index fragment_index.

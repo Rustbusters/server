@@ -66,7 +66,13 @@ impl SimpleHost {
                 "Node {}: Sending FloodResponse to initiator {}, next hop {}",
                 self.id, flood_request.initiator_id, response_packet.routing_header.hops[1]
             );
-            let _ = sender.send(response_packet);
+            if let Err(err) = sender.send(response_packet) {
+                warn!(
+                    "Node {}: Error sending FloodResponse to initiator {}: {}",
+                    self.id, flood_request.initiator_id, err
+                );
+            }
+            
         } else {
             warn!(
                 "Node {}: Cannot send FloodResponse to initiator {}",

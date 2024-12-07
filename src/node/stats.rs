@@ -36,8 +36,7 @@ impl Stats {
     pub(crate) fn inc_fragments_sent(&mut self) {
         self.fragments_sent += 1;
     }
-
-    #[allow(dead_code)] // TODO: to be used in the future
+    
     pub(crate) fn inc_messages_received(&mut self) {
         self.messages_received += 1;
     }
@@ -60,7 +59,6 @@ impl Stats {
 }
 
 // Getters
-#[allow(dead_code)] // TODO: to be used in the future
 impl Stats {
     pub fn get_messages_sent(&self) -> u64 {
         self.messages_sent

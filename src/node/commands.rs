@@ -1,3 +1,4 @@
+use log::warn;
 use wg_2024::network::NodeId;
 use crate::node::messages::Message;
 use crate::node::SimpleHost;
@@ -43,7 +44,9 @@ impl SimpleHost {
                 self.auto_send_off();
             },
             HostCommand::StatsRequest => {
-                let _ = self.controller_send.send(HostEvent::StatsResponse(self.stats.clone()));
+                if let Err(err) = self.controller_send.send(HostEvent::StatsResponse(self.stats.clone())) {
+                    warn!("Node {}: Unable to send StatsResponse(...) to controller: {}", self.id, err);
+                }
             }
         }
     }

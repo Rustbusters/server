@@ -23,8 +23,6 @@ impl SimpleHost {
             );
             let fragments = self.disassemble_message(message.clone());
 
-            // let fragments = self.generate_random_fragments();
-
             // Send the fragments along the route
             for fragment in fragments {
                 debug!(
@@ -44,6 +42,7 @@ impl SimpleHost {
                 // Send the packet to the first hop
                 let next_hop = packet.routing_header.hops[1];
                 if let Some(sender) = self.packet_send.get(&next_hop) {
+                    // TODO: in indiv. contr., better handling of send errors
                     let _ = sender.send(packet.clone());
                     self.pending_sent
                         .entry((session_id, fragment_index))
