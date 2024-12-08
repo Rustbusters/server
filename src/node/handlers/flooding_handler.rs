@@ -3,6 +3,7 @@ use log::info;
 use log::warn;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType};
+use crate::commands::HostEvent::ControllerShortcut;
 
 impl SimpleHost {
     pub(crate) fn handle_flood_response(&mut self, flood_response: FloodResponse) {
@@ -66,11 +67,12 @@ impl SimpleHost {
                 "Node {}: Sending FloodResponse to initiator {}, next hop {}",
                 self.id, flood_request.initiator_id, response_packet.routing_header.hops[1]
             );
-            if let Err(err) = sender.send(response_packet) {
+            if let Err(err) = sender.send(response_packet.clone()) {
                 warn!(
                     "Node {}: Error sending FloodResponse to initiator {}: {}",
                     self.id, flood_request.initiator_id, err
                 );
+                self.send_to_sc(ControllerShortcut(response_packet))
             }
             
         } else {
@@ -78,6 +80,7 @@ impl SimpleHost {
                 "Node {}: Cannot send FloodResponse to initiator {}",
                 self.id, flood_request.initiator_id
             );
+            self.send_to_sc(ControllerShortcut(response_packet))
         }
     }
 }

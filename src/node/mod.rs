@@ -16,6 +16,7 @@ use rand::seq::IteratorRandom;
 use rand::{rng, Rng};
 use std::collections::{HashMap};
 use std::time::Duration;
+use wg_2024::controller::DroneEvent;
 use wg_2024::network::NodeId;
 use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{Fragment, NodeType, Packet};
@@ -163,4 +164,19 @@ impl SimpleHost {
             }
         }
     }
+    
+    pub(crate) fn send_to_sc(&mut self, event: HostEvent) {
+        if self.controller_send.send(event).is_ok() {
+            info!(
+                "Node {} - Sent NodeEvent to SC",
+                self.id
+            );
+        } else {
+            error!(
+                "Node {} - Error in sending event to SC",
+                self.id
+            );
+        }
+    }
 }
+

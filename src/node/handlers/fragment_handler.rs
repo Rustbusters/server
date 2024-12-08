@@ -2,7 +2,7 @@ use crate::node::SimpleHost;
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
-use crate::commands::HostEvent::MessageReceived;
+use crate::commands::HostEvent::{ControllerShortcut, MessageReceived};
 
 impl SimpleHost {
     pub(crate) fn handle_message_fragment(
@@ -84,8 +84,10 @@ impl SimpleHost {
         let next_hop = ack_packet.routing_header.hops[1];
 
         if let Some(sender) = self.packet_send.get(&next_hop) {
-            if let Err(err) = sender.send(ack_packet){
+            if let Err(err) = sender.send(ack_packet.clone()){
                 warn!("Node {}: Error sending Ack for fragment {} to {}: {}", self.id, fragment_index, next_hop, err);
+                self.send_to_sc(ControllerShortcut(ack_packet));
+                info!("Node {}: Sending ack through SC", self.id);
             } else {
                 // Increment the number of sent Acks
                 self.stats.inc_acks_sent();
@@ -99,6 +101,7 @@ impl SimpleHost {
                 "Node {}: Cannot send Ack for fragment {} to {}",
                 self.id, fragment_index, next_hop
             );
+            self.send_to_sc(ControllerShortcut(ack_packet))
         }
     }
 
