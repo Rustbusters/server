@@ -1,6 +1,6 @@
 
-mod node;
+mod server;
 
-pub use node::SimpleHost;
-pub use node::commands;
-pub use node::stats::*;
+pub use server::Server;
+pub use server::commands;
+pub use server::stats::*;

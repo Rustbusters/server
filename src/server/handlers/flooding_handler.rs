@@ -38,7 +38,7 @@ impl SimpleHost {
             path_trace: new_path_trace.clone(),
         };
 
-        // If the packet was sent by this node, learn the topology without sending a response
+        // If the packet was sent by this server, learn the topology without sending a response
         if flood_request.initiator_id == self.id {
             info!(
                 "Node {}: Received own FloodRequest with flood_id {}. Learning topology...",

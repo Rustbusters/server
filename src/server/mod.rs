@@ -3,7 +3,7 @@ pub mod commands;
 mod disassembler;
 mod handlers;
 mod messages;
-mod networ_discovery;
+mod network_discovery;
 mod packet_sender;
 mod router;
 pub(crate) mod stats;
@@ -22,7 +22,7 @@ use wg_2024::packet::NodeType::{Client, Drone, Server};
 use wg_2024::packet::{Fragment, NodeType, Packet};
 use crate::commands::HostEvent;
 
-pub struct SimpleHost {
+pub struct Server {
     id: NodeId,
     node_type: NodeType,
     controller_send: Sender<HostEvent>,
@@ -43,7 +43,7 @@ pub struct SimpleHost {
     auto_send_interval: u64, // in ms
 }
 
-impl SimpleHost {
+impl Server {
     pub fn new(
         id: NodeId,
         node_type: NodeType,
@@ -110,7 +110,7 @@ impl SimpleHost {
             {
                 last_send_time = std::time::Instant::now();
 
-                // Retain only servers if the node is a client and viceversa
+                // Retain only servers if the server is a client and viceversa
                 let mut reachable_hosts = self.known_nodes.clone();
                 reachable_hosts.retain(|&_id, node_type| match self.node_type {
                     Client => *node_type == Server,
@@ -118,19 +118,19 @@ impl SimpleHost {
                     Drone => false,
                 });
 
-                // Choose a random node to send a message to
+                // Choose a random server to send a message to
                 if !reachable_hosts.is_empty() {
                     if let Some(&random_node_id) = reachable_hosts
                         .keys()
                         .filter(|&&id| id != self.id)
                         .choose(&mut rng)
                     {
-                        // Send a message to the random node
+                        // Send a message to the random server
                         println!(
-                            "Node {}: Send a message to node {}",
+                            "Node {}: Send a message to server {}",
                             self.id, random_node_id
                         );
-                        info!("Node {}: Send a message to node {random_node_id}", self.id);
+                        info!("Node {}: Send a message to server {random_node_id}", self.id);
                         self.send_random_message(random_node_id);
                     }
                 } else {
