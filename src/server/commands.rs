@@ -2,9 +2,9 @@ use crossbeam_channel::Sender;
 use log::warn;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
-use crate::node::messages::Message;
-use crate::node::SimpleHost;
-use crate::node::stats::Stats;
+use common_utils::Message;
+use crate::server::RustBustersServer;
+use crate::server::stats::Stats;
 
 #[derive(Debug, Clone)]
 pub enum HostCommand {
@@ -27,7 +27,7 @@ pub enum HostEvent{
     ControllerShortcut(Packet)
 }
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn handle_command(&mut self, command: HostCommand) {
         match command {
             HostCommand::SendRandomMessage(dest) => {
@@ -35,12 +35,6 @@ impl SimpleHost {
             }
             HostCommand::DiscoverNetwork => {
                 self.discover_network();
-            },
-            HostCommand::EnableEchoMode => {
-                self.echo_mode_on();
-            },
-            HostCommand::DisableEchoMode => {
-                self.echo_mode_off();
             },
             HostCommand::EnableAutoSend(interval) => {
                 self.auto_send_on(interval);
@@ -61,6 +55,7 @@ impl SimpleHost {
                 self.packet_send.remove(&sender_id);
                 self.discover_network();
             }
+            _ => {}
         }
     }
 }

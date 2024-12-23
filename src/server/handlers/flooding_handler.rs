@@ -1,11 +1,11 @@
-use crate::node::SimpleHost;
+use crate::server::RustBustersServer;
 use log::info;
 use log::warn;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType};
 use crate::commands::HostEvent::ControllerShortcut;
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn handle_flood_response(&mut self, flood_response: FloodResponse) {
         for window in flood_response.path_trace.windows(2) {
             if let [(from_id, from_type), (to_id, to_type)] = window {

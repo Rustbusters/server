@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use log::info;
-use crate::node::SimpleHost;
+use crate::server::RustBustersServer;
 use wg_2024::network::NodeId;
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn compute_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
         // Simple BFS to find the shortest path
         let mut visited = HashSet::new();

@@ -1,7 +1,7 @@
-use crate::node::messages::Message;
-use crate::node::SimpleHost;
+use common_utils::Message;
+use crate::server::RustBustersServer;
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn reassemble_fragments(&mut self, session_id: u64) -> Result<Message, String> {
         match self.pending_received.remove(&session_id) {
             None => Err(format!("No fragments for session {}", session_id)),

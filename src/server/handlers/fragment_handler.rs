@@ -1,10 +1,10 @@
-use crate::node::SimpleHost;
+use crate::server::RustBustersServer;
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
 use crate::commands::HostEvent::{ControllerShortcut, MessageReceived};
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn handle_message_fragment(
         &mut self,
         fragment: Fragment,

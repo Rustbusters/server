@@ -1,9 +1,9 @@
-use crate::node::SimpleHost;
+use crate::server::RustBustersServer;
 use log::{info, warn};
 use wg_2024::packet::NackType;
 use wg_2024::packet::NackType::Dropped;
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn handle_nack(
         &mut self,
         session_id: u64,

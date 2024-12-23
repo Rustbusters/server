@@ -1,7 +1,7 @@
-use crate::node::SimpleHost;
+use crate::server::RustBustersServer;
 use log::info;
 
-impl SimpleHost {
+impl RustBustersServer {
     pub(crate) fn handle_ack(&mut self, session_id: u64, fragment_index: u64) {
         // Update stats
         self.stats.inc_acks_received();
