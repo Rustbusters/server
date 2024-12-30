@@ -3,7 +3,9 @@ use log::info;
 use log::warn;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType};
-use crate::commands::HostEvent::ControllerShortcut;
+use common_utils::HostEvent::ControllerShortcut;
+
+use wg_2024::packet::NodeType::Server;
 
 impl RustBustersServer {
     pub(crate) fn handle_flood_response(&mut self, flood_response: FloodResponse) {
@@ -31,7 +33,7 @@ impl RustBustersServer {
 
     pub(crate) fn handle_flood_request(&mut self, flood_request: FloodRequest, session_id: u64) {
         let mut new_path_trace = flood_request.path_trace.clone();
-        new_path_trace.push((self.id, self.node_type));
+        new_path_trace.push((self.id, Server));
 
         let flood_response = FloodResponse {
             flood_id: flood_request.flood_id,

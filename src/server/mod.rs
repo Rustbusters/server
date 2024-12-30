@@ -1,20 +1,16 @@
 pub mod commands;
 mod handlers;
 mod network;
-mod packet_sender;
 pub(crate) mod stats;
 mod ad;
 
 use crate::server::stats::Stats;
-use commands::HostCommand;
+use common_utils::{HostCommand, HostEvent};
 use crossbeam_channel::{Receiver, Sender};
-use petgraph::prelude::GraphMap;
-use petgraph::Undirected;
 use log::{error, info};
 use std::collections::{HashMap};
 use wg_2024::network::NodeId;
 use wg_2024::packet::{Fragment, NodeType, Packet};
-use crate::commands::HostEvent;
 use rand::*;
 
 pub struct RustBustersServer {
@@ -24,7 +20,7 @@ pub struct RustBustersServer {
     packet_recv: Receiver<Packet>,
     packet_send: HashMap<NodeId, Sender<Packet>>,
     known_nodes: HashMap<NodeId, NodeType>,
-    topology: GraphMap<NodeId, f32, Undirected>,
+    topology: HashMap<NodeId, Vec<NodeId>>,
     flood_id_counter: u64,
     session_id_counter: u64,
     // (session_id, fragment_index) -> packet
@@ -50,7 +46,7 @@ impl RustBustersServer {
             packet_recv,
             packet_send,
             known_nodes: HashMap::new(),
-            topology: GraphMap::new(),
+            topology: HashMap::new(),
             flood_id_counter: rng().random_range(1000..=2000),
             session_id_counter: rng().random_range(100..=200),
             pending_sent: HashMap::new(),

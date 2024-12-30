@@ -2,7 +2,7 @@ use crate::server::RustBustersServer;
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
-use crate::commands::HostEvent::{ControllerShortcut, MessageReceived};
+use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
 
 impl RustBustersServer {
     pub(crate) fn handle_message_fragment(
@@ -23,7 +23,7 @@ impl RustBustersServer {
                         self.id, msg, session_id
                     );
                     self.stats.inc_messages_received();
-                    if let Err(err) = self.controller_send.send(MessageReceived(msg)) {
+                    if let Err(err) = self.controller_send.send(HostMessageReceived(msg)) {
                         warn!("Node {}: Unable to send MessageReceived(...) to controller: {}", self.id, err);
                     }
                 }
@@ -35,34 +35,6 @@ impl RustBustersServer {
 
         // Echo mode
         let fragment_index = fragment.fragment_index;
-        if self.echo_mode && session_id != 0 {
-            // Send the fragment back to the sender
-            let packet = Packet {
-                pack_type: PacketType::MsgFragment(fragment),
-                routing_header: SourceRoutingHeader {
-                    hop_index: 1,
-                    hops: source_routing_header
-                        .hops
-                        .iter()
-                        .rev()
-                        .cloned()
-                        .collect::<Vec<NodeId>>(),
-                },
-                session_id: 0, // TODO: find a better way to handle this (echo only one time when session_id is not 0)
-            };
-
-            let next_hop = packet.routing_header.hops[1];
-
-            if let Some(sender) = self.packet_send.get(&next_hop) {
-                let _ = sender.send(packet);
-            }
-
-            info!(
-                "Node {}: Echo to fragment {} of session {}",
-                self.id, fragment_index, session_id
-            );
-        }
-
         // Send an Acknowledgment
         let ack = Ack { fragment_index };
 

@@ -1,8 +1,8 @@
-use common_utils::Message;
+use common_utils::HostMessage;
 use crate::server::RustBustersServer;
 
 impl RustBustersServer {
-    pub(crate) fn reassemble_fragments(&mut self, session_id: u64) -> Result<Message, String> {
+    pub(crate) fn reassemble_fragments(&mut self, session_id: u64) -> Result<HostMessage, String> {
         match self.pending_received.remove(&session_id) {
             None => Err(format!("No fragments for session {}", session_id)),
             Some(fragments) => {
