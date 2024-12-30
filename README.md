@@ -18,7 +18,8 @@ The server implementation is organized in 2 main feature blocks:
 ## UI
 The UI is implemented through the combination of:
 
-- **WebSocket Server**: used for full-duplex communication between the servers + http client and the WebSocket Server.
+- **WebSocket Controller**: used for full-duplex communication between the `(n+1)` WebSocket Clients and the WebSocket Server. There are `n` WebSocket Clients which are associated to the servers of the network and one WebSocket Client that hosts the static page.
 - **HTTP Server**: allows the hosting of a landing page with the UI.
 
-![[./assets/diagram.png]]
+This is a simple diagram explaining the overall architecture:
+<img src="./assets/diagram.png" width="400px"/>
