@@ -1,5 +1,5 @@
 use common_utils::HostMessage;
-use crate::server::RustBustersServer;
+use crate::model::RustBustersServer;
 use wg_2024::packet::{Fragment, FRAGMENT_DSIZE};
 
 impl RustBustersServer {

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use log::info;
-use crate::server::RustBustersServer;
+use crate::model::RustBustersServer;
 use wg_2024::network::NodeId;
 
 impl RustBustersServer {

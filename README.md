@@ -5,8 +5,8 @@ This repository provides the implementation for the Communication server.
 # Overview
 The server implementation is organized in 2 main feature blocks:
 
-- Standard: basic features of Packet Handling and Network Discovery
-- Custom: more advanced custom features that include:
+- **Standard**: basic features of Packet Handling and Network Discovery
+- **Custom**: more advanced custom features that include:
     - Load balancer: server requests are split among multiple worker threads
     - Persistency: client messages are saved in a DB
     - UI: user interface for interacting with the server and seeing statistics

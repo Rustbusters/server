@@ -3,7 +3,7 @@ use log::warn;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 use common_utils::HostMessage;
-use crate::server::RustBustersServer;
+use crate::model::RustBustersServer;
 use common_utils::Stats;
 use common_utils::{HostEvent, HostCommand};
 

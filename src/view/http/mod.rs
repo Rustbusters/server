@@ -1,3 +1,4 @@
+mod message;
 
 use std::{io::Error, thread};
 use std::str::FromStr;
@@ -6,8 +7,35 @@ use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 use tokio_stream::StreamExt;
 use std::fs;
 use log::info;
+use wg_2024::config::Server;
 
-mod message;
+// pub struct RustBustersServerUI {
+//     ip_addr: String,
+//     port: u16,
+//     servers: Vec<Server>,
+//     websocket_server_address: String,
+//     http_server_address: String,
+// }
+
+// impl RustBustersServerUI {
+//     pub fn new(ip_addr: &str, port: u16, servers: Vec<Server>) -> Self {
+//         let ip_addr = ip_addr.to_string();
+//         let websocket_server_address = String::from(format!("{}:{}", ip_addr.clone(), port));
+//         let http_server_address = String::from(format!("{}:{}", ip_addr.clone(), port + 1));
+
+//         Self { ip_addr, port, servers, websocket_server_address, http_server_address }
+//     }
+    
+//     pub fn run(self) {
+//         // 1. Create WebSocketController that will spawn the server + clients
+//         let websocket_controller = WebSocketController::new(self.websocket_server_address, self.servers.clone());
+//         websocket_controller.run();
+
+//         // 2. Create and launch HTTP Server for hosting UI
+//         let http_server = HttpServer::new(self.http_server_address.clone(), "static/server/emeliyanov");
+//         http_server.run();
+//     }
+// }
 
 pub struct HttpServer {
     address: String,
@@ -16,25 +44,27 @@ pub struct HttpServer {
 }
 
 impl HttpServer {
-    pub fn new(address: String, public_path: &str) -> Self {
+    pub fn new(address: String, public_path: String) -> Self {
         let mut routes = Vec::new();
         routes.push(String::from("dashboard"));
         routes.push(String::from("servers"));
         routes.push(String::from("messages"));
-        Self { address, routes, public_path: public_path.to_string() }
+        Self { address, routes, public_path }
     }
 
-    pub fn run(&self) {
-        println!("HTTP server running at http://{}", self.address);
-        let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
-        loop {
-            if let Ok(Some(request)) = http_server.try_recv() {
-                match self.handle_request(request) {
-                    Ok(()) => {}
-                    Err(e) => eprintln!("Error handling request: {e}"),
+    pub fn run(self) {
+        thread::spawn(move || {
+            println!("HTTP server running at http://{}", self.address);
+            let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
+            loop {
+                if let Ok(Some(request)) = http_server.try_recv() {
+                    match self.handle_request(request) {
+                        Ok(()) => {}
+                        Err(e) => eprintln!("Error handling request: {e}"),
+                    }
                 }
             }
-        }
+        });
     }
 
 

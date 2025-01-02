@@ -1,4 +1,4 @@
-use crate::server::RustBustersServer;
+use crate::model::RustBustersServer;
 use log::{info, warn};
 use wg_2024::packet::NackType;
 use wg_2024::packet::NackType::Dropped;

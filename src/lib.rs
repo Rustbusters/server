@@ -1,10 +1,9 @@
 
 #![allow(warnings)]
 
-mod server;
-mod ui;
+mod controller;
+mod view;
+mod model;
 
-pub use server::RustBustersServer;
-pub use ui::RustBustersServerUI;
-pub use server::commands;
-pub use server::stats::*;
+pub use controller::RustBustersServerController;
+pub use model::RustBustersServer;

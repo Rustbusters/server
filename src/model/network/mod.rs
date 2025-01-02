@@ -1,4 +1,4 @@
-use crate::RustBustersServer;
+use crate::model::RustBustersServer;
 
 pub mod router;
 
