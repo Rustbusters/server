@@ -1,4 +1,4 @@
-use crate::model::RustBustersServer;
+use crate::RustBustersServer;
 use log::info;
 use wg_2024::packet::{Packet, PacketType};
 

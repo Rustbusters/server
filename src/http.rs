@@ -1,5 +1,3 @@
-mod message;
-
 use std::{io::Error, thread};
 use std::str::FromStr;
 use tiny_http::{Header, Method, Request, Response, StatusCode};
@@ -54,7 +52,7 @@ impl HttpServer {
 
     pub fn run(self) {
         thread::spawn(move || {
-            println!("HTTP server running at http://{}", self.address);
+            println!("[HTTP] Server running at http://{}", self.address);
             let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
             loop {
                 if let Ok(Some(request)) = http_server.try_recv() {
@@ -71,7 +69,7 @@ impl HttpServer {
     fn handle_request(&self, mut req: Request) -> Result<(), Error> {
         let method = req.method();
         let url = req.url();
-        println!("[HTTP] @GET Received request: {method} {url}");
+        // println!("[HTTP] @GET Received request: {method} {url}");
 
         let response = match (method, url) {
             // @ GET method
@@ -114,18 +112,18 @@ impl HttpServer {
                         0
                     });
 
-                println!("POST request body: {}", body);
+                // println!("POST request body: {}", body);
 
                 Response::from_string("[HTTP] @POST request received")
             }
             // @Put Method
             (Method::Put, "/api") => {
-                println!("PUT request received");
+                // println!("PUT request received");
                 Response::from_string("[HTTP] @PUT request received")
             }
             // @Delete Method
             (Method::Delete, "/api") => {
-                println!("DELETE request received");
+                // println!("DELETE request received");
                 Response::from_string("[HTTP] @DELETE request received")
             }
             // Undefined route

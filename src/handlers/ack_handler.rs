@@ -1,4 +1,4 @@
-use crate::model::RustBustersServer;
+use crate::RustBustersServer;
 use log::info;
 
 impl RustBustersServer {

@@ -1,6 +1,6 @@
-use crate::model::RustBustersServer;
+mod router;
 
-pub mod router;
+use crate::RustBustersServer;
 
 impl RustBustersServer {
     pub fn discover_network(&self) {

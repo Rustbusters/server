@@ -1,5 +1,5 @@
 use common_utils::HostMessage;
-use crate::model::RustBustersServer;
+use crate::RustBustersServer;
 
 impl RustBustersServer {
     pub(crate) fn reassemble_fragments(&mut self, session_id: u64) -> Result<HostMessage, String> {

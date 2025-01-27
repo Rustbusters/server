@@ -1,7 +1,6 @@
-
-use crate::view::http::HttpServer;
-use crate::model::websocket::{self, WebSocketServer};
-use crate::model::RustBustersServer;
+use crate::http::HttpServer;
+use crate::websocket::server::WebSocketServer;
+use crate::RustBustersServer;
 
 use tokio_tungstenite::tungstenite::handshake::server;
 use wg_2024::config::Server;
@@ -47,23 +46,6 @@ impl RustBustersServerController {
 
     fn run_websocket_server(&self) {
         let websocket_server = WebSocketServer::new(self.websocket_server_address.clone());
-        websocket_server.run(self.websocket_server_address.clone());
-        thread::spawn(move || {
-            let rt = Runtime::new().expect("Failed to create Tokio runtime");
-
-            rt.block_on(async move {
-                // Launch WebSocket server
-                let server_task = task::spawn(async move {
-                    if let Err(e) = websocket_server.run(websocket_server.address.clone()).await {
-                        eprintln!("Error in WebSocket Server task: {}", e);
-                    }
-                });
-
-                // Await server task
-                if let Err(e) = server_task.await {
-                    eprintln!("WebSocket server error: {}", e);
-                }
-            });
-        });
+        websocket_server.run();
     }
 }

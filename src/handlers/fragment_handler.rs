@@ -1,4 +1,4 @@
-use crate::model::RustBustersServer;
+use crate::RustBustersServer;
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};

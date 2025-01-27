@@ -1,4 +1,4 @@
-use crate::model::RustBustersServer;
+use crate::RustBustersServer;
 use log::info;
 use log::warn;
 use wg_2024::network::SourceRoutingHeader;
