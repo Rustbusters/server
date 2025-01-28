@@ -1,6 +1,14 @@
+mod flood_handler;
+mod fragment_handler;
+mod nack_handler;
+mod ack_handler;
+mod client_handler;
+mod sender;
+
 use crate::RustBustersServer;
-use log::info;
-use wg_2024::packet::{Packet, PacketType};
+use log::{info, warn, debug};
+
+use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType, Ack, Fragment};
 
 impl RustBustersServer {
     pub(crate) fn handle_packet(&mut self, packet: Packet) {
@@ -20,12 +28,13 @@ impl RustBustersServer {
                 self.handle_flood_response(flood_response);
             }
             PacketType::MsgFragment(fragment) => {
+                println!("Server {} - Received MsgFragment", self.id);
                 // Handle incoming message fragments
                 info!(
                     "Server {}: Received fragment {} of session {}",
                     self.id, fragment.fragment_index, packet.session_id
                 );
-                self.handle_message_fragment(fragment, packet.session_id, packet.routing_header);
+                self.handle_fragment(fragment, packet.session_id, packet.routing_header);
             }
             PacketType::Ack(ack) => {
                 // Handle Acknowledgments

@@ -1,31 +1,16 @@
 
-use crate::stats::Stats;
 use crate::RustBustersServerController;
 use common_utils::{HostCommand, HostEvent};
-use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use log::{error, info, debug, warn};
 use tokio::task;
 use std::collections::{HashMap};
-use std::hash::Hash;
 use wg_2024::network::NodeId;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 use wg_2024::network::SourceRoutingHeader;
-use rand::*;
-use std::thread::{self, sleep};
-use tokio_tungstenite::tungstenite::handshake::server;
-use wg_2024::config::Server;
-use tokio::task::{JoinHandle};
-use std::sync::{Arc, Mutex};
-use futures::{SinkExt, StreamExt};
-use tokio::runtime::Runtime;
-use tokio::net::TcpListener;
-use tokio_tungstenite::{accept_async, connect_async};
-use tokio_tungstenite::tungstenite::Message;
-use crossbeam_channel::{unbounded, select};
 
 use crate::websocket::client::WebSocketClient;
 use crate::websocket::message::{InternalMessage, WebSocketMessage};
-use common_utils::{User, HostMessage, ServerToClientMessage};
+use common_utils::{User, HostMessage, ServerToClientMessage, Stats};
 
 use tokio::time::Duration;
 use std::collections::HashSet;
@@ -33,9 +18,10 @@ use std::collections::HashSet;
 use crate::RustBustersServer;
 
 impl RustBustersServer {
-    pub(crate) fn send_packet(&mut self, destination_id: NodeId, message: HostMessage) {
+    pub(crate) fn send_message(&mut self, destination_id: NodeId, message: HostMessage) {
         // Find route to destination
         if let Some(route) = self.find_route(destination_id) {
+            println!("ROUTE: {:?}", route);
             // Disassemble the message
             let fragments = self.disassemble_message(&message);
             
@@ -44,7 +30,7 @@ impl RustBustersServer {
 
             // Send the fragments along the route
             for fragment in fragments {
-                debug!(
+                println!(
                     "Server {}: Sending fragment {:?} of session {} to {}",
                     self.id, fragment, session_id, destination_id
                 );

@@ -13,7 +13,7 @@ impl RustBustersServer {
         todo!();
         match command {
             HostCommand::SendRandomMessage(dest_id) => {
-                self.send_packet(
+                self.send_message(
                     dest_id,
                     HostMessage::FromServer(ServerToClientMessage::PrivateMessage {
                         sender_id: self.id,
