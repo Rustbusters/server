@@ -4,7 +4,7 @@ use crate::RustBustersServer;
 use wg_2024::network::NodeId;
 
 impl RustBustersServer {
-    pub(crate) fn compute_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
+    pub(crate) fn find_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
         // Simple BFS to find the shortest path
         let mut visited = HashSet::new();
         let mut queue = VecDeque::new();

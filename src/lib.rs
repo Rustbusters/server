@@ -10,6 +10,7 @@ mod controller;
 mod http;
 mod server;
 mod stats;
+mod packet_sender;
 
 
 pub use controller::RustBustersServerController;

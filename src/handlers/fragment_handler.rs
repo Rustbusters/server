@@ -2,7 +2,8 @@ use crate::RustBustersServer;
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
-use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
+use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived, };
+use common_utils::{ClientToServerMessage, ServerToClientMessage, HostMessage, MessageBody, User};
 
 impl RustBustersServer {
     pub(crate) fn handle_message_fragment(
@@ -18,22 +19,32 @@ impl RustBustersServer {
         if self.set_pending(session_id, fragment.clone()) {
             match self.reassemble_fragments(session_id) {
                 Ok(msg) => {
+                    if let HostMessage::FromClient(client_to_server_msg) = &msg {
+                        let user_id = source_routing_header.current_hop().expect("No current hop in source routing header");
+                        // Handle the various types of Client to Server messages
+                        match client_to_server_msg {
+                            ClientToServerMessage::RegisterUser {name} => self.handle_register_user(user_id, name),
+                            ClientToServerMessage::UnregisterUser => self.handle_unregister_user(user_id),
+                            ClientToServerMessage::RequestActiveUsers => self.handle_request_active_users(user_id),
+                            ClientToServerMessage::SendPrivateMessage{ recipient_id, message } => self.handle_send_private_message(user_id, *recipient_id, message),
+                            _ => {}
+                        }
+                    }
                     info!(
-                        "Node {}: Received full message {:?} of session {}",
+                        "Server {}: Received full message {:?} of session {}",
                         self.id, msg, session_id
                     );
                     self.stats.inc_messages_received();
                     if let Err(err) = self.controller_send.send(HostMessageReceived(msg)) {
-                        warn!("Node {}: Unable to send MessageReceived(...) to controller: {}", self.id, err);
+                        warn!("Server {}: Unable to send MessageReceived(...) to controller: {}", self.id, err);
                     }
                 }
                 Err(err) => {
-                    warn!("Node {}: {}", self.id, err);
+                    warn!("Server {} failed to reassemble fragments: {}", self.id, err);
                 }
             }
         }
 
-        // Echo mode
         let fragment_index = fragment.fragment_index;
         // Send an Acknowledgment
         let ack = Ack { fragment_index };
@@ -91,4 +102,40 @@ impl RustBustersServer {
         
         entry.1 == total_n_fragments
     }
+
+    fn handle_register_user(&mut self, src_id: NodeId, name: &str) {
+        // Verify the user presence in the hashset
+        if !self.active_users.contains_key(&src_id) { // Newly inserted
+            self.active_users.insert(src_id, name.to_string());
+            // Send Registration Success message
+            self.send_packet(src_id, HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess));
+        } else { // Already exists
+            // Send Registration Failure message
+            self.send_packet(src_id, HostMessage::FromServer(ServerToClientMessage::RegistrationFailure));
+        }
+    }
+
+    fn handle_unregister_user(&mut self, src_id: NodeId) {
+        // Verify the user presence in the hashset
+        if self.active_users.contains_key(&src_id) { // newly inserted
+            self.active_users.remove(&src_id);
+            // Send Unregistration Success message
+            self.send_packet(src_id, HostMessage::FromServer(ServerToClientMessage::UnregisterSuccess));
+        } else { // already exist
+            // Send Unregsiteration Failure message
+            self.send_packet(src_id, HostMessage::FromServer(ServerToClientMessage::UnregisterFailure));
+        }
+    }
+
+    fn handle_request_active_users(&mut self, src_id: NodeId) {
+        // Send the list of active users
+        let active_users: Vec<User> = self.active_users.iter().map(|(id, name)| User::new(id.clone(), name.to_string()) ).collect();
+        self.send_packet(src_id, HostMessage::FromServer(ServerToClientMessage::ActiveUsersList { users: active_users }));
+    }
+
+    fn handle_send_private_message(&mut self, src_id: NodeId, dest_id: NodeId, message: &MessageBody) {
+        // Send the message to the recipient
+        self.send_packet(dest_id, HostMessage::FromServer(ServerToClientMessage::PrivateMessage { sender_id: src_id, message: message.clone() }));
+    }
+
 }

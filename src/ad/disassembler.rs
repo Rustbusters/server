@@ -3,7 +3,7 @@ use crate::RustBustersServer;
 use wg_2024::packet::{Fragment, FRAGMENT_DSIZE};
 
 impl RustBustersServer {
-    pub(crate) fn disassemble_message(&self, message: HostMessage) -> Vec<Fragment> {
+    pub(crate) fn disassemble_message(&self, message: &HostMessage) -> Vec<Fragment> {
         let serialized_str = serde_json::to_string(&message).unwrap();
         let bytes = serialized_str.as_bytes();
         
