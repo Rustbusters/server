@@ -1,4 +1,3 @@
-use crate::stats::Stats;
 use crate::RustBustersServerController;
 use common_utils::{HostCommand, HostEvent};
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
@@ -24,7 +23,7 @@ use crossbeam_channel::{unbounded, select};
 
 use crate::websocket::client::WebSocketClient;
 use crate::websocket::message::{InternalMessage, WebSocketMessage};
-use common_utils::{User, HostMessage, ServerToClientMessage};
+use common_utils::{User, HostMessage, ServerToClientMessage, Stats};
 
 use tokio::time::Duration;
 use std::collections::HashSet;
