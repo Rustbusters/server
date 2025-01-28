@@ -1,19 +1,17 @@
-
 use crate::RustBustersServerController;
 use common_utils::{HostCommand, HostEvent};
-use log::{error, info, debug, warn};
+use log::{debug, error, info, warn};
+use std::collections::HashMap;
 use tokio::task;
-use std::collections::{HashMap};
 use wg_2024::network::NodeId;
-use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 use wg_2024::network::SourceRoutingHeader;
+use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
-use crate::websocket::client::WebSocketClient;
 use crate::websocket::message::{InternalMessage, WebSocketMessage};
-use common_utils::{User, HostMessage, ServerToClientMessage, Stats};
+use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
-use tokio::time::Duration;
 use std::collections::HashSet;
+use tokio::time::Duration;
 
 use crate::RustBustersServer;
 
@@ -24,9 +22,13 @@ impl RustBustersServer {
             println!("ROUTE: {:?}", route);
             // Disassemble the message
             let fragments = self.disassemble_message(&message);
-            
+
             // Either use the existing session id or create a new one based on the last session id used
-            let mut session_id = self.session_ids.get(&destination_id).unwrap_or(&self.session_id_counter).clone();
+            let mut session_id = self
+                .session_ids
+                .get(&destination_id)
+                .unwrap_or(&self.session_id_counter)
+                .clone();
 
             // Send the fragments along the route
             for fragment in fragments {
@@ -75,12 +77,11 @@ impl RustBustersServer {
                 "Server {}: Sent message to {} via route {:?}",
                 self.id, destination_id, route
             );
-            } 
-        else {
+        } else {
             error!(
                 "Server {}: Unable to find route to {}",
                 self.id, destination_id
-            ); 
+            );
         }
     }
 }

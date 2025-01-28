@@ -1,17 +1,17 @@
 use crate::http::HttpServer;
-use crate::websocket::server::WebSocketServer;
+use crate::websocket::WebSocketServer;
 use crate::RustBustersServer;
 
-use tokio_tungstenite::tungstenite::handshake::server;
-use wg_2024::config::Server;
-use std::thread;
-use tokio::task::{self, JoinHandle};
-use std::sync::{Arc, Mutex};
 use futures::{SinkExt, StreamExt};
-use tokio::runtime::Runtime;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use tokio::net::TcpListener;
-use tokio_tungstenite::{accept_async, connect_async};
+use tokio::runtime::Runtime;
+use tokio::task::{self, JoinHandle};
+use tokio_tungstenite::tungstenite::handshake::server;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{accept_async, connect_async};
+use wg_2024::config::Server;
 
 pub struct RustBustersServerController {
     // Network config
@@ -22,16 +22,26 @@ pub struct RustBustersServerController {
     // WebSocket (port = http_port + 1)
     pub(crate) websocket_server_address: String,
     // Path for storing static content
-    pub(crate) public_path: String
+    pub(crate) public_path: String,
 }
 
 impl RustBustersServerController {
     pub fn new(ip: [u8; 4], port: u16, public_path: String) -> Self {
-        let ip_str: String = ip.iter().map(|n| n.to_string()).collect::<Vec<String>>().join(".");
+        let ip_str: String = ip
+            .iter()
+            .map(|n| n.to_string())
+            .collect::<Vec<String>>()
+            .join(".");
         let http_server_address = format!("{}:{}", ip_str, port);
-        let websocket_server_address = format!("{}:{}", ip_str, port+1);
+        let websocket_server_address = format!("{}:{}", ip_str, port + 1);
 
-        Self { ip, port, http_server_address, websocket_server_address, public_path }
+        Self {
+            ip,
+            port,
+            http_server_address,
+            websocket_server_address,
+            public_path,
+        }
     }
 
     pub fn launch(&self) {
@@ -40,7 +50,8 @@ impl RustBustersServerController {
     }
 
     fn run_ui(&self) {
-        let http_server = HttpServer::new(self.http_server_address.clone(), self.public_path.clone());
+        let http_server =
+            HttpServer::new(self.http_server_address.clone(), self.public_path.clone());
         http_server.run();
     }
 

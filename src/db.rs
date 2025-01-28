@@ -1,4 +1,4 @@
-use common_utils::{HostMessage, MessageBody};
+use common_utils::{ClientToServerMessage, HostMessage, MessageBody};
 use wg_2024::network::NodeId;
 
 use serde::{Deserialize, Serialize};
@@ -56,24 +56,36 @@ impl DbManager {
         let mut messages = Vec::new();
         for result in self.db.iter() {
             let (_, value) = result?;
-            let message: DbMessage = serde_json::from_slice(&value).unwrap();
-            messages.push(message);
+            let db_message: DbMessage = serde_json::from_slice(&value).unwrap();
+
+            messages.push(db_message);
         }
         Ok(messages)
     }
 
     /// Retrieves all messages from a specific sender
-    pub fn get_by_sender(&self, sender_id: NodeId) -> sled::Result<Vec<DbMessage>> {
-        let mut messages = Vec::new();
-        for result in self.db.iter() {
-            let (_, value) = result?;
-            let message: DbMessage = serde_json::from_slice(&value).unwrap();
-            if message.message.sender_id == sender_id {
-                messages.push(message);
-            }
-        }
-        Ok(messages)
-    }
+    // pub fn get_by_sender(&self, sender_id: NodeId) -> sled::Result<Vec<DbMessage>> {
+    //     let mut messages = Vec::new();
+    //     for result in self.db.iter() {
+    //         let (_, value) = result?;
+    //         let db_message: DbMessage = serde_json::from_slice(&value).unwrap();
+    //         match db_message.message {
+    //             HostMessage::FromClient(client_to_server) => match client_to_server {
+    //                 ClientToServerMessage::SendPrivateMessage {
+    //                     recipient_id,
+    //                     message,
+    //                 } => {
+    //                     if message.sender_id == sender_id {
+    //                         messages.push({id: db_message.id.clone(), message: db_message.message});
+    //                     }
+    //                 }
+    //                 _ => {}
+    //             },
+    //             _ => {}
+    //         }
+    //     }
+    //     Ok(messages)
+    // }
 
     /// Removes a message by its ID
     pub fn remove(&self, id: Uuid) -> sled::Result<()> {

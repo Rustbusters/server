@@ -1,10 +1,10 @@
-use std::{io::Error, thread};
-use std::str::FromStr;
-use tiny_http::{Header, Method, Request, Response, StatusCode};
-use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
-use tokio_stream::StreamExt;
-use std::fs;
 use log::info;
+use std::fs;
+use std::str::FromStr;
+use std::{io::Error, thread};
+use tiny_http::{Header, Method, Request, Response, StatusCode};
+use tokio_stream::StreamExt;
+use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 use wg_2024::config::Server;
 
 // pub struct RustBustersServerUI {
@@ -23,7 +23,7 @@ use wg_2024::config::Server;
 
 //         Self { ip_addr, port, servers, websocket_server_address, http_server_address }
 //     }
-    
+
 //     pub fn run(self) {
 //         // 1. Create WebSocketController that will spawn the server + clients
 //         let websocket_controller = WebSocketController::new(self.websocket_server_address, self.servers.clone());
@@ -38,7 +38,7 @@ use wg_2024::config::Server;
 pub struct HttpServer {
     address: String,
     routes: Vec<String>,
-    public_path: String
+    public_path: String,
 }
 
 impl HttpServer {
@@ -47,7 +47,11 @@ impl HttpServer {
         routes.push(String::from("dashboard"));
         routes.push(String::from("servers"));
         routes.push(String::from("messages"));
-        Self { address, routes, public_path }
+        Self {
+            address,
+            routes,
+            public_path,
+        }
     }
 
     pub fn run(self) {
@@ -56,15 +60,13 @@ impl HttpServer {
             let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
             loop {
                 if let Ok(Some(request)) = http_server.try_recv() {
-                    match self.handle_request(request) {
-                        Ok(()) => {}
-                        Err(e) => eprintln!("Error handling request: {e}"),
+                    if let Err(e) = self.handle_request(request) {
+                        eprintln!("Error handling request: {e}");
                     }
                 }
             }
         });
     }
-
 
     fn handle_request(&self, mut req: Request) -> Result<(), Error> {
         let method = req.method();
@@ -84,15 +86,13 @@ impl HttpServer {
             (Method::Get, path) if path.starts_with('/') => {
                 let sanitized_path = String::from(&path[1..]); // Remove initial slash '/'
                 match fs::read(format!("{}/{}", self.public_path, sanitized_path)) {
-                    Ok(content) => {
-                        Response::from_data(content).with_header(
-                            Header::from_str(&format!(
-                                "Content-Type: {}",
-                                self.get_mime_type(sanitized_path.as_str())
-                            ))
-                            .unwrap(),
-                        )
-                    }
+                    Ok(content) => Response::from_data(content).with_header(
+                        Header::from_str(&format!(
+                            "Content-Type: {}",
+                            self.get_mime_type(sanitized_path.as_str())
+                        ))
+                        .unwrap(),
+                    ),
                     Err(err) => {
                         let file = fs::read_to_string(format!("{}/index.html", self.public_path))
                             .unwrap_or("DEFAULT_HTML".to_string());
@@ -100,9 +100,9 @@ impl HttpServer {
                             .with_header(Header::from_str("Content-Type: text/html").unwrap())
                     }
                 }
-            } 
+            }
             // @Post Method
-            // Description: 
+            // Description:
             (Method::Post, "/api/send-to") => {
                 let mut body = String::new();
                 req.as_reader()

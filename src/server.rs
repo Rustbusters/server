@@ -22,7 +22,6 @@ use wg_2024::network::NodeId;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
-use crate::websocket::client::WebSocketClient;
 use crate::websocket::message::{InternalMessage, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
@@ -45,7 +44,6 @@ pub struct RustBustersServer {
     // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
     pub(crate) pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>,
     pub(crate) stats: Stats,
-    pub(crate) websocket_client: Option<WebSocketClient>,
     websocket_server_address: String,
 
     // Map for storing the active user sessions
@@ -86,7 +84,6 @@ impl RustBustersServer {
             pending_sent: HashMap::new(),
             pending_received: HashMap::new(),
             stats: Stats::default(),
-            websocket_client: None,
             websocket_server_address,
             active_users: HashMap::new(),
             last_discovery: Instant::now(),
@@ -103,36 +100,11 @@ impl RustBustersServer {
         info!("Server {} started network discovery", self.id);
         self.discover_network();
 
-        // Create crossbeam channels for packet listener and websocket full-duplex communication
+        // Crossbeam channels for communication between the server's network listener and websocket server
         let (tx, rx) = unbounded::<InternalMessage>();
-
-        // Start websocket client
-        Self::launch_websocket_client(
-            self.id,
-            self.websocket_server_address.clone(),
-            tx.clone(),
-            rx.clone(),
-        );
 
         // Start network listener
         self.launch_network_listener(tx, rx);
-    }
-
-    pub fn launch_websocket_client(
-        client_id: NodeId,
-        ws_url: String,
-        tx: Sender<InternalMessage>,
-        rx: Receiver<InternalMessage>,
-    ) {
-        thread::spawn(move || {
-            let client_id = client_id;
-            let rt = Runtime::new().expect("Failed to create Tokio runtime");
-            rt.block_on(async {
-                if let Err(e) = WebSocketClient::run(ws_url, tx, rx).await {
-                    eprintln!("WebSocket client error: {}", e);
-                }
-            });
-        });
     }
 
     pub fn launch_network_listener(
@@ -153,8 +125,8 @@ impl RustBustersServer {
                 recv(self.packet_recv) -> packet_res => {
                     if let Ok(mut packet) = packet_res {
                         self.handle_packet(packet);
-                        // tx.send(InternalMessage::FragmentReceived(0)).unwrap();
                         // TODO: Send stats to websocket server
+                        // 1. Use tx to send info to websocket server
                     } else {
                         error!("Client {} - Error in receiving packet", self.id);
                     }
