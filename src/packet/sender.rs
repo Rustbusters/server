@@ -17,7 +17,6 @@ impl RustBustersServer {
     pub(crate) fn send_message(&mut self, destination_id: NodeId, message: HostMessage) {
         // Find route to destination
         if let Some(route) = self.find_route(destination_id) {
-            println!("ROUTE: {:?}", route);
             // Disassemble the message
             let fragments = self.disassemble_message(&message);
 
@@ -31,8 +30,8 @@ impl RustBustersServer {
             // Send the fragments along the route
             for fragment in fragments {
                 println!(
-                    "Server {}: Sending fragment {:?} of session {} to {}",
-                    self.id, fragment, session_id, destination_id
+                    "Server {}: Sending fragment {} of session {} to Client {}",
+                    self.id, fragment.fragment_index, session_id, destination_id
                 );
                 let fragment_index = fragment.fragment_index;
                 let packet = Packet {
@@ -71,6 +70,10 @@ impl RustBustersServer {
                 .controller_send
                 .send(HostEvent::HostMessageSent(message));
 
+            println!(
+                "Server {}: Sent message to {} via route {:?}",
+                self.id, destination_id, route
+            );
             info!(
                 "Server {}: Sent message to {} via route {:?}",
                 self.id, destination_id, route

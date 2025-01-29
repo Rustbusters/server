@@ -3,6 +3,7 @@ pub mod message;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 use url::Url;
 use wg_2024::config::Server;
 use wg_2024::network::NodeId;
@@ -11,9 +12,7 @@ use common_utils::Stats;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-// use futures_util::stream::{StreamExt, };
-use futures::SinkExt;
-use futures_util::stream::{SplitSink, SplitStream, StreamExt};
+use crate::CONFIG;
 use tungstenite::{Message, WebSocket};
 
 pub struct WebSocketServer {
@@ -58,6 +57,10 @@ impl WebSocketServer {
                         break;
                     }
                 }
+
+                if CONFIG.lock().unwrap().is_empty() {
+                    break;
+                }
             }
 
             Ok(())
@@ -72,10 +75,22 @@ impl WebSocketServer {
 
         // Handle incoming messages from the client
         loop {
-            if let Ok(msg) = ws_stream.read() {
-                println!("Received message: {msg:?}");
-            }
+            // if let Ok(msg) = ws_stream.read() {
+            //     println!("Received message: {msg:?}");
+            // }
             // TODO: use the crossbeam channels to receive messages from the servers
+            let config = CONFIG.lock().unwrap();
+            for (id, conn) in config.iter() {
+                if let Ok(msg) = conn.receiver.try_recv() {
+                    println!(
+                        "Received message from network server on WEBSOCKET {}: {}",
+                        id, msg
+                    );
+                    ws_stream.write(Message::Text(msg));
+                    ws_stream.flush();
+                }
+            }
+            thread::sleep(Duration::from_millis(100));
         }
     }
 }

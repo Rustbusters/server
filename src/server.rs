@@ -7,7 +7,7 @@ use log::{debug, error, info, warn};
 use rand::*;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::thread::{self, sleep};
 use std::time::{Duration, Instant};
 use wg_2024::config::Server;
@@ -19,6 +19,14 @@ use crate::websocket::message::{InternalMessage, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use std::collections::HashSet;
+
+pub struct Connection {
+    pub sender: Sender<String>,
+    pub receiver: Receiver<String>,
+}
+
+pub static CONFIG: LazyLock<Mutex<HashMap<NodeId, Connection>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub struct RustBustersServer {
     pub(crate) id: NodeId,
@@ -94,17 +102,25 @@ impl RustBustersServer {
         self.discover_network();
 
         // Crossbeam channels for communication between the server's network listener and websocket server
-        let (tx, rx) = unbounded::<InternalMessage>();
+        let (tx, rx) = unbounded::<String>();
+        self.add_connection(tx.clone(), rx.clone());
 
         // Start network listener
         self.launch_network_listener(tx, rx);
     }
 
-    pub fn launch_network_listener(
-        &mut self,
-        tx: Sender<InternalMessage>,
-        rx: Receiver<InternalMessage>,
-    ) {
+    fn add_connection(&self, tx: Sender<String>, rx: Receiver<String>) {
+        let mut config = CONFIG.lock().unwrap();
+        config.insert(
+            self.id,
+            Connection {
+                sender: tx,
+                receiver: rx,
+            },
+        );
+    }
+
+    pub fn launch_network_listener(&mut self, tx: Sender<String>, rx: Receiver<String>) {
         // Listen for incoming messages
         loop {
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
@@ -119,7 +135,7 @@ impl RustBustersServer {
                     if let Ok(mut packet) = packet_res {
                         self.handle_packet(packet);
                         // TODO: Send stats to websocket server
-                        // 1. Use tx to send info to websocket server
+                        tx.send("HELLO WORLD".to_string()).unwrap();
                     } else {
                         error!("Client {} - Error in receiving packet", self.id);
                     }

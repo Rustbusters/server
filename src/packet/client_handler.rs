@@ -14,7 +14,7 @@ impl RustBustersServer {
     ///
     /// Insert the user id in the active_users map and send the corresponding message back
     pub(crate) fn handle_register_user(&mut self, src_id: NodeId, name: &str) {
-        println!("Server {} - Received RegisterUser", self.id);
+        println!("\nServer {} - Received RegisterUser {name}\n", self.id);
         // Verify the user presence in the hashset
         if !self.active_users.contains_key(&src_id) {
             // Newly inserted
@@ -24,14 +24,10 @@ impl RustBustersServer {
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
-
-            // TODO: remove later, for test purposes only
-            // DB OPERATION
-            // Save message to local database
-            // if let Ok(db_manager) = &self.db_manager {
-            //     println!("Inserting in db");
-            //     db_manager.insert(DbMessage::new(src_id, 4, "Hello".to_string()));
-            // }
+            println!(
+                "\nServer {} - Sending RegistrationSuccess {name}\n",
+                self.id
+            );
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
@@ -50,6 +46,10 @@ impl RustBustersServer {
         } else {
             // Already exists
             // Send Registration Failure message
+            println!(
+                "\nServer {} - Sending RegistrationFailure {name}\n",
+                self.id
+            );
             self.send_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationFailure),
@@ -63,7 +63,6 @@ impl RustBustersServer {
     pub(crate) fn handle_unregister_user(&mut self, src_id: NodeId) {
         // Verify the user presence in the hashset
         if self.active_users.contains_key(&src_id) {
-            // newly inserted
             self.active_users.remove(&src_id);
             // Send Unregistration Success message
             self.send_message(
@@ -73,17 +72,14 @@ impl RustBustersServer {
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
-            other_users
-                .iter()
-                .filter(|(id, _)| *id != &src_id)
-                .for_each(|(id, name)| {
-                    self.send_message(
-                        src_id,
-                        HostMessage::FromServer(ServerToClientMessage::UserUnregistered {
-                            id: id.clone(),
-                        }),
-                    );
-                });
+            other_users.iter().for_each(|(&other_id, name)| {
+                self.send_message(
+                    other_id,
+                    HostMessage::FromServer(ServerToClientMessage::UserUnregistered {
+                        id: other_id,
+                    }),
+                );
+            });
         } else {
             // already exist
             // Send Unregsiteration Failure message
@@ -139,7 +135,6 @@ impl RustBustersServer {
         );
         // Save message to local database
         if let Ok(db_manager) = &self.db_manager {
-            println!("Inserting in db");
             let message_content = match message.content.clone() {
                 MessageContent::Text(text) => text,
                 MessageContent::Image(image) => image,

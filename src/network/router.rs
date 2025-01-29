@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use log::info;
 use crate::RustBustersServer;
+use log::info;
+use std::collections::{HashMap, HashSet, VecDeque};
 use wg_2024::network::NodeId;
 
 impl RustBustersServer {
@@ -14,8 +14,6 @@ impl RustBustersServer {
         queue.push_back(self.id);
 
         while let Some(current) = queue.remove(0) {
-            println!("CURRENT: {}", current);
-            println!("DESTINATION: {}", destination_id);
             if current == destination_id {
                 // Build the path from self.id to destination_id
                 let mut path = vec![destination_id];
@@ -29,7 +27,6 @@ impl RustBustersServer {
                     }
                 }
                 path.reverse();
-                println!("PATH: {:?}", path);
                 info!(
                     "Node {}: Found route to {}: {:?}",
                     self.id, destination_id, path
