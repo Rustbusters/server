@@ -37,8 +37,8 @@ impl RustBustersServer {
                     self.send_message(
                         other_id,
                         HostMessage::FromServer(ServerToClientMessage::NewUserRegistered {
-                            id: other_id,
-                            name: other_name.clone(),
+                            id: src_id,
+                            name: name.to_string(),
                         }),
                     );
                 },
@@ -61,6 +61,10 @@ impl RustBustersServer {
         // Verify the user presence in the hashset
         if self.active_users.contains_key(&src_id) {
             self.active_users.remove(&src_id);
+            println!(
+                "\nServer {} - Sending UnregisterSuccess to {}",
+                self.id, src_id
+            );
             // Send Unregistration Success message
             self.send_message(
                 src_id,
@@ -72,9 +76,7 @@ impl RustBustersServer {
             other_users.iter().for_each(|(&other_id, other_name)| {
                 self.send_message(
                     other_id,
-                    HostMessage::FromServer(ServerToClientMessage::UserUnregistered {
-                        id: other_id,
-                    }),
+                    HostMessage::FromServer(ServerToClientMessage::UserUnregistered { id: src_id }),
                 );
             });
         } else {

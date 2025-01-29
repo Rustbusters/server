@@ -28,6 +28,9 @@ pub struct Connection {
 pub static CONFIG: LazyLock<Mutex<HashMap<NodeId, Connection>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+pub static STATS: LazyLock<Mutex<HashMap<NodeId, Stats>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
 pub struct RustBustersServer {
     pub(crate) id: NodeId,
     pub(crate) controller_send: Sender<HostEvent>,
@@ -69,6 +72,10 @@ impl RustBustersServer {
     ) -> Self {
         let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(30));
         let db_name = format!("server_{}.db", id);
+
+        // Init stats for server
+        let mut stats = STATS.lock().unwrap();
+        stats.insert(id, Stats::default());
 
         info!("Server {} spawned succesfully", id);
         Self {

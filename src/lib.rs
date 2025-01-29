@@ -13,3 +13,4 @@ mod websocket;
 pub use controller::RustBustersServerController;
 pub use server::RustBustersServer;
 pub use server::CONFIG;
+pub use server::STATS;
