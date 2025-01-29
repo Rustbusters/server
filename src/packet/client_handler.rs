@@ -34,11 +34,15 @@ impl RustBustersServer {
             other_users
                 .iter()
                 .filter(|(id, _)| *id != &src_id)
-                .for_each(|(id, name)| {
+                .for_each(|(&id, name)| {
+                    println!(
+                        "Server {} - Sending NewUserRegistered to Client {}",
+                        self.id, id
+                    );
                     self.send_message(
-                        src_id,
+                        id,
                         HostMessage::FromServer(ServerToClientMessage::NewUserRegistered {
-                            id: id.clone(),
+                            id: id,
                             name: name.clone(),
                         }),
                     );
