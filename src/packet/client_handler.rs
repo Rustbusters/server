@@ -1,6 +1,8 @@
 use crate::RustBustersServer;
 use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
-use common_utils::{ClientToServerMessage, HostMessage, MessageBody, ServerToClientMessage, User};
+use common_utils::{
+    ClientToServerMessage, HostMessage, MessageBody, MessageContent, ServerToClientMessage, User,
+};
 use uuid::Uuid;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
@@ -22,6 +24,14 @@ impl RustBustersServer {
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
+
+            // TODO: remove later, for test purposes only
+            // DB OPERATION
+            // Save message to local database
+            // if let Ok(db_manager) = &self.db_manager {
+            //     println!("Inserting in db");
+            //     db_manager.insert(DbMessage::new(src_id, 4, "Hello".to_string()));
+            // }
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
@@ -128,12 +138,14 @@ impl RustBustersServer {
             }),
         );
         // Save message to local database
-        if let Some(db_manager) = &self.db_manager {
-            let message = HostMessage::FromClient(ClientToServerMessage::SendPrivateMessage {
-                recipient_id: dest_id,
-                message: message.clone(),
-            });
-            db_manager.insert(DbMessage::new(message));
+        if let Ok(db_manager) = &self.db_manager {
+            println!("Inserting in db");
+            let message_content = match message.content.clone() {
+                MessageContent::Text(text) => text,
+                MessageContent::Image(image) => image,
+                _ => "".to_string(),
+            };
+            db_manager.insert(DbMessage::new(src_id, dest_id, message_content));
         }
     }
 }

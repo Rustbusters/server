@@ -1,4 +1,4 @@
-use crate::db::DbManager;
+use crate::db::{self, DbManager};
 use crate::RustBustersServerController;
 use common_utils::{HostCommand, HostEvent};
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
@@ -9,14 +9,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, sleep};
-use std::time::Instant;
-use tokio::net::TcpListener;
-use tokio::runtime::Runtime;
-use tokio::task;
-use tokio::task::JoinHandle;
-use tokio_tungstenite::tungstenite::handshake::server;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{accept_async, connect_async};
+use std::time::{Duration, Instant};
 use wg_2024::config::Server;
 use wg_2024::network::NodeId;
 use wg_2024::network::SourceRoutingHeader;
@@ -26,7 +19,6 @@ use crate::websocket::message::{InternalMessage, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use std::collections::HashSet;
-use tokio::time::Duration;
 
 pub struct RustBustersServer {
     pub(crate) id: NodeId,
@@ -54,7 +46,7 @@ pub struct RustBustersServer {
     discovery_interval: Duration,
 
     // Database manager
-    pub(crate) db_manager: Option<DbManager>,
+    pub(crate) db_manager: Result<DbManager, rusqlite::Error>,
 }
 
 impl RustBustersServer {
@@ -67,7 +59,8 @@ impl RustBustersServer {
         websocket_server_address: String,
         discovery_interval: Option<Duration>,
     ) -> Self {
-        let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(20));
+        let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(30));
+        let db_name = format!("server_{}.db", id);
 
         info!("Server {} spawned succesfully", id);
         Self {
@@ -88,7 +81,7 @@ impl RustBustersServer {
             active_users: HashMap::new(),
             last_discovery: Instant::now(),
             discovery_interval,
-            db_manager: DbManager::new("rustbuster_db".to_string()),
+            db_manager: DbManager::new(db_name),
         }
     }
 
@@ -142,7 +135,7 @@ impl RustBustersServer {
                 },
 
                 // No more packets
-                default(Duration::from_millis(2000)) => {}
+                default(Duration::from_secs(2)) => {}
             }
         }
     }
