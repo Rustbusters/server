@@ -1,5 +1,8 @@
 pub mod message;
 
+use crate::{ConnectionsWrapper, StatsWrapper};
+
+use rusqlite::Connection;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
@@ -12,7 +15,6 @@ use common_utils::Stats;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::CONFIG;
 use tungstenite::{Message, WebSocket};
 
 pub struct WebSocketServer {
@@ -58,7 +60,7 @@ impl WebSocketServer {
                     }
                 }
 
-                if CONFIG.lock().unwrap().is_empty() {
+                if ConnectionsWrapper::is_empty() {
                     break;
                 }
             }
@@ -79,17 +81,7 @@ impl WebSocketServer {
             //     println!("Received message: {msg:?}");
             // }
             // TODO: use the crossbeam channels to receive messages from the servers
-            let config = CONFIG.lock().unwrap();
-            for (id, conn) in config.iter() {
-                if let Ok(msg) = conn.receiver.try_recv() {
-                    println!(
-                        "Received message from network server on WEBSOCKET {}: {}",
-                        id, msg
-                    );
-                    ws_stream.write(Message::Text(msg));
-                    ws_stream.flush();
-                }
-            }
+            ConnectionsWrapper::receive_and_forward_message(&mut ws_stream);
             thread::sleep(Duration::from_millis(100));
         }
     }

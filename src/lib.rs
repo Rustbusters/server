@@ -8,9 +8,10 @@ mod http;
 mod network;
 mod packet;
 mod server;
+mod state;
 mod websocket;
 
 pub use controller::RustBustersServerController;
 pub use server::RustBustersServer;
-pub use server::CONFIG;
-pub use server::STATS;
+pub use state::ConnectionsWrapper;
+pub use state::StatsWrapper;

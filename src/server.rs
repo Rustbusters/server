@@ -1,5 +1,5 @@
 use crate::db::{self, DbManager};
-use crate::RustBustersServerController;
+use crate::{ConnectionsWrapper, RustBustersServerController, StatsWrapper};
 use common_utils::{HostCommand, HostEvent};
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
 use futures::{SinkExt, StreamExt};
@@ -19,17 +19,6 @@ use crate::websocket::message::{InternalMessage, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use std::collections::HashSet;
-
-pub struct Connection {
-    pub sender: Sender<String>,
-    pub receiver: Receiver<String>,
-}
-
-pub static CONFIG: LazyLock<Mutex<HashMap<NodeId, Connection>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-pub static STATS: LazyLock<Mutex<HashMap<NodeId, Stats>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub struct RustBustersServer {
     pub(crate) id: NodeId,
@@ -74,8 +63,9 @@ impl RustBustersServer {
         let db_name = format!("server_{}.db", id);
 
         // Init stats for server
-        let mut stats = STATS.lock().unwrap();
-        stats.insert(id, Stats::default());
+        StatsWrapper::get_or_create_stats(id);
+        // Crossbeam channels for communication between the server's network listener and websocket server
+        ConnectionsWrapper::add_connection(id);
 
         info!("Server {} spawned succesfully", id);
         Self {
@@ -108,26 +98,11 @@ impl RustBustersServer {
         info!("Server {} started network discovery", self.id);
         self.discover_network();
 
-        // Crossbeam channels for communication between the server's network listener and websocket server
-        let (tx, rx) = unbounded::<String>();
-        self.add_connection(tx.clone(), rx.clone());
-
         // Start network listener
-        self.launch_network_listener(tx, rx);
+        self.launch_network_listener();
     }
 
-    fn add_connection(&self, tx: Sender<String>, rx: Receiver<String>) {
-        let mut config = CONFIG.lock().unwrap();
-        config.insert(
-            self.id,
-            Connection {
-                sender: tx,
-                receiver: rx,
-            },
-        );
-    }
-
-    pub fn launch_network_listener(&mut self, tx: Sender<String>, rx: Receiver<String>) {
+    pub fn launch_network_listener(&mut self) {
         // Listen for incoming messages
         loop {
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
@@ -142,7 +117,8 @@ impl RustBustersServer {
                     if let Ok(mut packet) = packet_res {
                         self.handle_packet(packet);
                         // TODO: Send stats to websocket server
-                        tx.send("HELLO WORLD".to_string()).unwrap();
+                        let stats = StatsWrapper::get_stats(self.id);
+                        ConnectionsWrapper::send_stats(self.id, stats);
                     } else {
                         error!("Client {} - Error in receiving packet", self.id);
                     }

@@ -1,9 +1,10 @@
 use crate::RustBustersServer;
+use crate::StatsWrapper;
+use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
+use common_utils::{ClientToServerMessage, HostMessage, MessageBody, ServerToClientMessage, User};
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
-use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived, };
-use common_utils::{ClientToServerMessage, ServerToClientMessage, HostMessage, MessageBody, User};
 
 impl RustBustersServer {
     pub(crate) fn handle_fragment(
@@ -13,20 +14,33 @@ impl RustBustersServer {
         source_routing_header: SourceRoutingHeader,
     ) {
         // Update stats
+
         self.stats.inc_fragments_received();
+        StatsWrapper::inc_fragments_sent(self.id);
 
         // If after insert all fragments of the session are received, reassemble the message
         if self.set_pending(session_id, fragment.clone()) {
             match self.reassemble_fragments(session_id) {
                 Ok(msg) => {
                     if let HostMessage::FromClient(client_to_server_msg) = &msg {
-                        let src_id = source_routing_header.source().expect("No current hop in source routing header");
+                        let src_id = source_routing_header
+                            .source()
+                            .expect("No current hop in source routing header");
                         // Handle the various types of Client to Server messages
                         match client_to_server_msg {
-                            ClientToServerMessage::RegisterUser {name} => self.handle_register_user(src_id, name),
-                            ClientToServerMessage::UnregisterUser => self.handle_unregister_user(src_id),
-                            ClientToServerMessage::RequestActiveUsers => self.handle_request_active_users(src_id),
-                            ClientToServerMessage::SendPrivateMessage{ recipient_id, message } => self.handle_send_private_message(src_id, *recipient_id, message),
+                            ClientToServerMessage::RegisterUser { name } => {
+                                self.handle_register_user(src_id, name)
+                            }
+                            ClientToServerMessage::UnregisterUser => {
+                                self.handle_unregister_user(src_id)
+                            }
+                            ClientToServerMessage::RequestActiveUsers => {
+                                self.handle_request_active_users(src_id)
+                            }
+                            ClientToServerMessage::SendPrivateMessage {
+                                recipient_id,
+                                message,
+                            } => self.handle_send_private_message(src_id, *recipient_id, message),
                             _ => {}
                         }
                     }
@@ -36,7 +50,10 @@ impl RustBustersServer {
                     );
                     self.stats.inc_messages_received();
                     if let Err(err) = self.controller_send.send(HostMessageReceived(msg)) {
-                        warn!("Server {}: Unable to send MessageReceived(...) to controller: {}", self.id, err);
+                        warn!(
+                            "Server {}: Unable to send MessageReceived(...) to controller: {}",
+                            self.id, err
+                        );
                     }
                 }
                 Err(err) => {
@@ -67,8 +84,11 @@ impl RustBustersServer {
         let next_hop = ack_packet.routing_header.hops[1];
 
         if let Some(sender) = self.packet_send.get(&next_hop) {
-            if let Err(err) = sender.send(ack_packet.clone()){
-                warn!("Node {}: Error sending Ack for fragment {} to {}: {}", self.id, fragment_index, next_hop, err);
+            if let Err(err) = sender.send(ack_packet.clone()) {
+                warn!(
+                    "Node {}: Error sending Ack for fragment {} to {}: {}",
+                    self.id, fragment_index, next_hop, err
+                );
                 self.send_to_sc(ControllerShortcut(ack_packet));
                 info!("Node {}: Sending ack through SC", self.id);
             } else {
@@ -89,17 +109,20 @@ impl RustBustersServer {
     }
 
     /// Insert the fragment in the pending_received map at index fragment_index.
-    /// 
+    ///
     /// Return true if all fragments have been received
     fn set_pending(&mut self, session_id: u64, fragment: Fragment) -> bool {
         let fragment_index = fragment.fragment_index;
         let total_n_fragments = fragment.total_n_fragments;
         // insert the fragment in the pending_received map at index fragment_index
         let fragments = vec![None; fragment.total_n_fragments as usize];
-        let entry = self.pending_received.entry(session_id).or_insert((fragments, 0));
+        let entry = self
+            .pending_received
+            .entry(session_id)
+            .or_insert((fragments, 0));
         entry.0[fragment_index as usize] = Some(fragment);
         entry.1 += 1;
-        
+
         entry.1 == total_n_fragments
     }
 }
