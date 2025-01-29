@@ -18,6 +18,7 @@ use tungstenite::{Message, WebSocket};
 
 pub struct WebSocketServer {
     pub(crate) address: String,
+    // TODO: store crossbeam channels for communication witht the servers
 }
 
 impl WebSocketServer {
@@ -41,11 +42,21 @@ impl WebSocketServer {
                 .set_nonblocking(true)
                 .expect("Cannot set non-blocking");
 
-            // Accept incoming connections
-            while let Ok((stream, _)) = listener.accept() {
-                if let Ok(ws_stream) = tungstenite::accept(stream) {
-                    // Accept the WebSocket handshake
-                    thread::spawn(move || Self::handle_connection(ws_stream));
+            loop {
+                match listener.accept() {
+                    Ok((stream, _)) => {
+                        if let Ok(ws_stream) = tungstenite::accept(stream) {
+                            thread::spawn(move || Self::handle_connection(ws_stream));
+                        }
+                    }
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // No incoming connections, sleep briefly to avoid busy-waiting
+                        thread::sleep(std::time::Duration::from_millis(100));
+                    }
+                    Err(e) => {
+                        eprintln!("Error accepting connection: {}", e);
+                        break;
+                    }
                 }
             }
 
@@ -64,6 +75,7 @@ impl WebSocketServer {
             if let Ok(msg) = ws_stream.read() {
                 println!("Received message: {msg:?}");
             }
+            // TODO: use the crossbeam channels to receive messages from the servers
         }
     }
 }
