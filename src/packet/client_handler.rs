@@ -14,46 +14,39 @@ impl RustBustersServer {
     ///
     /// Insert the user id in the active_users map and send the corresponding message back
     pub(crate) fn handle_register_user(&mut self, src_id: NodeId, name: &str) {
-        println!("\nServer {} - Received RegisterUser {name}\n", self.id);
+        println!("\nServer {} - Received RegisterUser {name}", self.id);
         // Verify the user presence in the hashset
         if !self.active_users.contains_key(&src_id) {
             // Newly inserted
             self.active_users.insert(src_id, name.to_string());
             // Send Registration Success message
+            println!("\nServer {} - Sending RegistrationSuccess {name}", self.id);
             self.send_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
-            println!(
-                "\nServer {} - Sending RegistrationSuccess {name}\n",
-                self.id
-            );
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
-            other_users
-                .iter()
-                .filter(|(id, _)| *id != &src_id)
-                .for_each(|(&id, name)| {
+            other_users.iter().filter(|(&id, _)| id != src_id).for_each(
+                |(&other_id, other_name)| {
                     println!(
-                        "Server {} - Sending NewUserRegistered to Client {}",
-                        self.id, id
+                        "\nServer {} - Sending NewUserRegistered to Client {}-{}",
+                        self.id, other_id, other_name
                     );
                     self.send_message(
-                        id,
+                        other_id,
                         HostMessage::FromServer(ServerToClientMessage::NewUserRegistered {
-                            id: id,
-                            name: name.clone(),
+                            id: other_id,
+                            name: other_name.clone(),
                         }),
                     );
-                });
+                },
+            );
         } else {
             // Already exists
             // Send Registration Failure message
-            println!(
-                "\nServer {} - Sending RegistrationFailure {name}\n",
-                self.id
-            );
+            println!("\nServer {} - Sending RegistrationFailure {name}", self.id);
             self.send_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationFailure),
@@ -76,7 +69,7 @@ impl RustBustersServer {
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
-            other_users.iter().for_each(|(&other_id, name)| {
+            other_users.iter().for_each(|(&other_id, other_name)| {
                 self.send_message(
                     other_id,
                     HostMessage::FromServer(ServerToClientMessage::UserUnregistered {
