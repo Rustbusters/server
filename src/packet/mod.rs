@@ -6,6 +6,7 @@ mod nack_handler;
 mod sender;
 
 use crate::RustBustersServer;
+use crate::StatsWrapper;
 use log::{debug, info, warn};
 
 use wg_2024::packet::{Ack, FloodRequest, FloodResponse, Fragment, Packet, PacketType};
@@ -18,6 +19,7 @@ impl RustBustersServer {
                     "Server {}: Received FloodRequest with flood_id {}",
                     self.id, flood_request.flood_id
                 );
+                StatsWrapper::inc_messages_received(self.id);
                 self.handle_flood_request(flood_request, packet.session_id);
             }
             PacketType::FloodResponse(flood_response) => {
@@ -25,6 +27,7 @@ impl RustBustersServer {
                     "Server {}: Received FloodResponse with flood_id {}",
                     self.id, flood_response.flood_id
                 );
+                StatsWrapper::inc_messages_received(self.id);
                 self.handle_flood_response(flood_response);
             }
             PacketType::MsgFragment(fragment) => {
@@ -33,6 +36,7 @@ impl RustBustersServer {
                     "Server {}: Received fragment {} of session {}",
                     self.id, fragment.fragment_index, packet.session_id
                 );
+                StatsWrapper::inc_fragments_received(self.id);
                 self.handle_fragment(fragment, packet.session_id, packet.routing_header);
             }
             PacketType::Ack(ack) => {
@@ -41,11 +45,13 @@ impl RustBustersServer {
                     "Server {}: Received Ack for fragment {}",
                     self.id, ack.fragment_index
                 );
+                StatsWrapper::inc_acks_received(self.id);
                 self.handle_ack(packet.session_id, ack.fragment_index);
             }
             PacketType::Nack(nack) => {
                 // Handle Negative Acknowledgments
                 info!("Server {}: Received Nack {nack:?}", self.id);
+                StatsWrapper::inc_nacks_received(self.id);
                 self.handle_nack(packet.session_id, nack.fragment_index, nack.nack_type);
             }
         }

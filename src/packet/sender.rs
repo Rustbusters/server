@@ -1,4 +1,4 @@
-use crate::RustBustersServerController;
+use crate::{RustBustersServerController, StatsWrapper};
 use common_utils::{HostCommand, HostEvent};
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -62,10 +62,10 @@ impl RustBustersServer {
                     self.pending_sent
                         .entry((session_id, fragment_index))
                         .or_insert(packet);
-                    self.stats.inc_fragments_sent();
+                    StatsWrapper::inc_fragments_sent(self.id);
                 }
             }
-            self.stats.inc_messages_sent();
+            StatsWrapper::inc_messages_sent(self.id);
             let _ = self
                 .controller_send
                 .send(HostEvent::HostMessageSent(message));

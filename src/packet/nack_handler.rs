@@ -1,4 +1,4 @@
-use crate::RustBustersServer;
+use crate::{RustBustersServer, StatsWrapper};
 use log::{info, warn};
 use wg_2024::packet::NackType;
 use wg_2024::packet::NackType::Dropped;
@@ -10,9 +10,6 @@ impl RustBustersServer {
         fragment_index: u64,
         nack_type: NackType,
     ) {
-        // Update stats
-        self.stats.inc_nacks_received();
-
         match self.pending_sent.get(&(session_id, fragment_index)) {
             None => {
                 warn!("Server {}: Nack for unknown fragment", self.id);
@@ -33,7 +30,7 @@ impl RustBustersServer {
                                 self.id, fragment_index, err
                             );
                         } else {
-                            self.stats.inc_fragments_sent();
+                            StatsWrapper::inc_fragments_sent(self.id);
                         }
                     }
                 } else {

@@ -13,11 +13,6 @@ impl RustBustersServer {
         session_id: u64,
         source_routing_header: SourceRoutingHeader,
     ) {
-        // Update stats
-
-        self.stats.inc_fragments_received();
-        StatsWrapper::inc_fragments_sent(self.id);
-
         // If after insert all fragments of the session are received, reassemble the message
         if self.set_pending(session_id, fragment.clone()) {
             match self.reassemble_fragments(session_id) {
@@ -48,7 +43,7 @@ impl RustBustersServer {
                         "Server {}: Received full message {:?} of session {}",
                         self.id, msg, session_id
                     );
-                    self.stats.inc_messages_received();
+                    StatsWrapper::inc_messages_received(self.id);
                     if let Err(err) = self.controller_send.send(HostMessageReceived(msg)) {
                         warn!(
                             "Server {}: Unable to send MessageReceived(...) to controller: {}",
@@ -93,7 +88,7 @@ impl RustBustersServer {
                 info!("Node {}: Sending ack through SC", self.id);
             } else {
                 // Increment the number of sent Acks
-                self.stats.inc_acks_sent();
+                StatsWrapper::inc_acks_sent(self.id);
                 info!(
                     "Node {}: Sent Ack for fragment {} to {}",
                     self.id, fragment_index, next_hop

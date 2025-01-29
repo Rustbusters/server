@@ -35,7 +35,6 @@ pub struct RustBustersServer {
     pub(crate) pending_sent: HashMap<(u64, u64), Packet>,
     // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
     pub(crate) pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>,
-    pub(crate) stats: Stats,
     websocket_server_address: String,
 
     // Map for storing the active user sessions
@@ -64,7 +63,7 @@ impl RustBustersServer {
 
         // Init stats for server
         StatsWrapper::get_or_create_stats(id);
-        // Crossbeam channels for communication between the server's network listener and websocket server
+        // Init crossbeam channels for communication between the server's network listener and websocket server
         ConnectionsWrapper::add_connection(id);
 
         info!("Server {} spawned succesfully", id);
@@ -81,7 +80,6 @@ impl RustBustersServer {
             session_id_counter: 0,
             pending_sent: HashMap::new(),
             pending_received: HashMap::new(),
-            stats: Stats::default(),
             websocket_server_address,
             active_users: HashMap::new(),
             last_discovery: Instant::now(),

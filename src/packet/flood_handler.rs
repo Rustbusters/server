@@ -1,9 +1,9 @@
-use crate::RustBustersServer;
+use crate::{RustBustersServer, StatsWrapper};
+use common_utils::HostEvent::ControllerShortcut;
 use log::info;
 use log::warn;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{FloodRequest, FloodResponse, Packet, PacketType};
-use common_utils::HostEvent::ControllerShortcut;
 
 use wg_2024::packet::NodeType::Server;
 
@@ -76,7 +76,6 @@ impl RustBustersServer {
                 );
                 self.send_to_sc(ControllerShortcut(response_packet))
             }
-            
         } else {
             warn!(
                 "Node {}: Cannot send FloodResponse to initiator {}",
