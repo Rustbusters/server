@@ -1,4 +1,5 @@
 use crate::db::{self, DbManager};
+use crate::websocket::message::WebSocketMessage;
 use crate::{ConnectionsWrapper, RustBustersServerController, StatsWrapper};
 use common_utils::{HostCommand, HostEvent};
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
@@ -15,7 +16,6 @@ use wg_2024::network::NodeId;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
-use crate::websocket::message::{InternalMessage, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use std::collections::HashSet;
@@ -26,6 +26,7 @@ pub struct RustBustersServer {
     pub(crate) controller_recv: Receiver<HostCommand>,
     pub(crate) packet_recv: Receiver<Packet>,
     pub(crate) packet_send: HashMap<NodeId, Sender<Packet>>,
+    pub(crate) ws_receiver: Receiver<WebSocketMessage>,
     pub(crate) known_nodes: HashMap<NodeId, NodeType>,
     pub(crate) topology: HashMap<NodeId, Vec<NodeId>>,
     pub(crate) session_ids: HashMap<NodeId, u64>,
@@ -63,8 +64,10 @@ impl RustBustersServer {
 
         // Init stats for server
         StatsWrapper::get_or_create_stats(id);
-        // Init crossbeam channels for communication between the server's network listener and websocket server
+        // Init crossbeam channels websocket server -> network listener
         ConnectionsWrapper::add_connection(id);
+        // Init crossbeam channels network listener -> websocket server
+        let ws_receiver = ConnectionsWrapper::add_ws_channel(id);
 
         info!("Server {} spawned succesfully", id);
         Self {
@@ -73,6 +76,7 @@ impl RustBustersServer {
             controller_recv,
             packet_recv,
             packet_send,
+            ws_receiver,
             known_nodes: HashMap::new(),
             topology: HashMap::new(),
             session_ids: HashMap::new(),
@@ -118,7 +122,7 @@ impl RustBustersServer {
                         let stats = StatsWrapper::get_stats(self.id);
                         ConnectionsWrapper::send_stats(self.id, stats);
                     } else {
-                        error!("Client {} - Error in receiving packet", self.id);
+                        error!("Server {} - Error in receiving packet", self.id);
                     }
                 },
 
@@ -127,9 +131,18 @@ impl RustBustersServer {
                     if let Ok(cmd) = command {
                         self.handle_command(cmd);
                     } else {
-                        error!("Client {} - Error in receiving command", self.id);
+                        error!("Server {} - Error in receiving command", self.id);
                     }
                 },
+
+                // Handle UI requests
+                recv(self.ws_receiver) -> ws_message => {
+                    if let Ok(message) = ws_message {
+                        self.handle_ws_message(message);
+                    } else {
+                        error!("Server {} - Error in websocket message receipt", self.id);
+                    }
+                }
 
                 // No more packets
                 default(Duration::from_secs(2)) => {}
@@ -142,6 +155,23 @@ impl RustBustersServer {
             info!("Server {} - Sent NodeEvent to SC", self.id);
         } else {
             error!("Server {} - Error in sending event to SC", self.id);
+        }
+    }
+
+    pub(crate) fn handle_ws_message(&self, message: WebSocketMessage) {
+        match message {
+            WebSocketMessage::GetServerMessages(server_id) => {
+                if let Ok(db_manager) = &self.db_manager {
+                    // Retrieve messages from server's database
+                    let db_messages = db_manager.get_all();
+
+                    if let Ok(messages) = db_messages {
+                        // Send through the ConnectionsWrapper
+                        ConnectionsWrapper::send_server_messages(server_id, messages);
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }

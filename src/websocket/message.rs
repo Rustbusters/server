@@ -1,34 +1,8 @@
 use common_utils::Stats;
+use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;
 
-#[derive(Debug)]
-pub enum InternalMessage {
-    MessageSent(NodeId),
-    FragmentSent(NodeId),
-    MessageReceived(NodeId),
-    FragmentReceived(NodeId),
-    AckSent(NodeId),
-    AckReceived(NodeId),
-    NackReceived(NodeId),    
-}
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WebSocketMessage {
-    FromClient(ClientToServerMessage),
-    FromServer(ServerToClientMessage),
-}
-
-// Client -> Server WebSocket messages
-pub enum ClientToServerMessage {
-    RegisterClient,
-    UnregisterClient,
-    PushStats(Stats),
-    Text(String)
-}
-
-// Server -> Client WebSocket messages
-pub enum ServerToClientMessage { 
-    RegistrationSuccess,
-    RegistrationFailure,
-    ForwardStats(Stats),
-    Text(String)
+    GetServerMessages(NodeId),
 }

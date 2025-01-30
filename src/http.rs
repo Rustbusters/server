@@ -1,37 +1,12 @@
+use crate::ConnectionsWrapper;
 use log::info;
+use serde_json::json;
 use std::fs;
 use std::str::FromStr;
 use std::{io::Error, thread};
 use tiny_http::{Header, Method, Request, Response, StatusCode};
 use wg_2024::config::Server;
-
-// pub struct RustBustersServerUI {
-//     ip_addr: String,
-//     port: u16,
-//     servers: Vec<Server>,
-//     websocket_server_address: String,
-//     http_server_address: String,
-// }
-
-// impl RustBustersServerUI {
-//     pub fn new(ip_addr: &str, port: u16, servers: Vec<Server>) -> Self {
-//         let ip_addr = ip_addr.to_string();
-//         let websocket_server_address = String::from(format!("{}:{}", ip_addr.clone(), port));
-//         let http_server_address = String::from(format!("{}:{}", ip_addr.clone(), port + 1));
-
-//         Self { ip_addr, port, servers, websocket_server_address, http_server_address }
-//     }
-
-//     pub fn run(self) {
-//         // 1. Create WebSocketController that will spawn the server + clients
-//         let websocket_controller = WebSocketController::new(self.websocket_server_address, self.servers.clone());
-//         websocket_controller.run();
-
-//         // 2. Create and launch HTTP Server for hosting UI
-//         let http_server = HttpServer::new(self.http_server_address.clone(), "static/server/emeliyanov");
-//         http_server.run();
-//     }
-// }
+use wg_2024::network::NodeId;
 
 pub struct HttpServer {
     address: String,
@@ -43,7 +18,7 @@ impl HttpServer {
     pub fn new(address: String, public_path: String) -> Self {
         let mut routes = Vec::new();
         routes.push(String::from("dashboard"));
-        routes.push(String::from("servers"));
+        // routes.push(String::from("servers"));
         routes.push(String::from("messages"));
         Self {
             address,
@@ -80,6 +55,37 @@ impl HttpServer {
                 Response::from_string(file)
                     .with_header(Header::from_str("Content-Type: text/html").unwrap())
             }
+            // @Get Method
+            // Description:
+            (Method::Get, "/api/servers") => {
+                let parts: Vec<&str> = url.split('/').collect();
+
+                // Check if the URL matches the pattern "/api/servers/:server_id"
+                if parts.len() == 4 && parts[1] == "api" && parts[2] == "servers" {
+                    let server_id = parts[3].parse::<NodeId>().unwrap(); // Extract server_id
+
+                    // Fetch server details based on server_id
+
+                    let messages = ConnectionsWrapper::get_messages(server_id);
+                    let json_response = json!({ "messages": messages }).to_string();
+
+                    Response::from_string(json_response)
+                        .with_header(Header::from_str("Content-Type: application/json").unwrap())
+                        .with_header(Header::from_str("Access-Control-Allow-Origin: *").unwrap())
+                } else {
+                    let servers = ConnectionsWrapper::get_servers();
+                    // Serialize the servers to JSON
+                    let json_data = serde_json::to_string(&servers).unwrap();
+
+                    // Create the final JSON object with the "servers" key
+                    let json_response = format!("{{\"servers\": {}}}", json_data);
+
+                    // Return the response with the proper Content-Type header
+                    Response::from_string(json_response)
+                        .with_header(Header::from_str("Content-Type: application/json").unwrap())
+                        .with_header(Header::from_str("Access-Control-Allow-Origin: *").unwrap())
+                }
+            }
             // Description: serve static content
             (Method::Get, path) if path.starts_with('/') => {
                 let sanitized_path = String::from(&path[1..]); // Remove initial slash '/'
@@ -98,31 +104,6 @@ impl HttpServer {
                             .with_header(Header::from_str("Content-Type: text/html").unwrap())
                     }
                 }
-            }
-            // @Post Method
-            // Description:
-            (Method::Post, "/api/send-to") => {
-                let mut body = String::new();
-                req.as_reader()
-                    .read_to_string(&mut body)
-                    .unwrap_or_else(|_| {
-                        println!("Failed to read request body");
-                        0
-                    });
-
-                // println!("POST request body: {}", body);
-
-                Response::from_string("[HTTP] @POST request received")
-            }
-            // @Put Method
-            (Method::Put, "/api") => {
-                // println!("PUT request received");
-                Response::from_string("[HTTP] @PUT request received")
-            }
-            // @Delete Method
-            (Method::Delete, "/api") => {
-                // println!("DELETE request received");
-                Response::from_string("[HTTP] @DELETE request received")
             }
             // Undefined route
             _ => {
