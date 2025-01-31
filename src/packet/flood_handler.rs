@@ -43,7 +43,7 @@ impl RustBustersServer {
         // If the packet was sent by this server, learn the topology without sending a response
         if flood_request.initiator_id == self.id {
             info!(
-                "Node {}: Received own FloodRequest with flood_id {}. Learning topology...",
+                "Server {}: Received own FloodRequest with flood_id {}. Learning topology...",
                 self.id, flood_request.flood_id
             );
             self.handle_flood_response(flood_response);
@@ -66,19 +66,19 @@ impl RustBustersServer {
             .get(&response_packet.routing_header.hops[1])
         {
             info!(
-                "Node {}: Sending FloodResponse to initiator {}, next hop {}",
+                "Server {}: Sending FloodResponse to initiator {}, next hop {}",
                 self.id, flood_request.initiator_id, response_packet.routing_header.hops[1]
             );
             if let Err(err) = sender.send(response_packet.clone()) {
                 warn!(
-                    "Node {}: Error sending FloodResponse to initiator {}: {}",
+                    "Server {}: Error sending FloodResponse to initiator {}: {}",
                     self.id, flood_request.initiator_id, err
                 );
                 self.send_to_sc(ControllerShortcut(response_packet))
             }
         } else {
             warn!(
-                "Node {}: Cannot send FloodResponse to initiator {}",
+                "Server {}: Cannot send FloodResponse to initiator {}",
                 self.id, flood_request.initiator_id
             );
             self.send_to_sc(ControllerShortcut(response_packet))

@@ -14,13 +14,13 @@ impl RustBustersServer {
     ///
     /// Insert the user id in the active_users map and send the corresponding message back
     pub(crate) fn handle_register_user(&mut self, src_id: NodeId, name: &str) {
-        println!("\nServer {} - Received RegisterUser {name}", self.id);
+        // println!("\nServer {} - Received RegisterUser {name}", self.id);
         // Verify the user presence in the hashset
         if !self.active_users.contains_key(&src_id) {
             // Newly inserted
             self.active_users.insert(src_id, name.to_string());
             // Send Registration Success message
-            println!("\nServer {} - Sending RegistrationSuccess {name}", self.id);
+            // println!("\nServer {} - Sending RegistrationSuccess {name}", self.id);
             self.send_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
@@ -30,10 +30,10 @@ impl RustBustersServer {
             let other_users = self.active_users.clone();
             other_users.iter().filter(|(&id, _)| id != src_id).for_each(
                 |(&other_id, other_name)| {
-                    println!(
-                        "\nServer {} - Sending NewUserRegistered to Client {}-{}",
-                        self.id, other_id, other_name
-                    );
+                    // println!(
+                    //     "\nServer {} - Sending NewUserRegistered to Client {}-{}",
+                    //     self.id, other_id, other_name
+                    // );
                     self.send_message(
                         other_id,
                         HostMessage::FromServer(ServerToClientMessage::NewUserRegistered {
@@ -46,7 +46,7 @@ impl RustBustersServer {
         } else {
             // Already exists
             // Send Registration Failure message
-            println!("\nServer {} - Sending RegistrationFailure {name}", self.id);
+            // println!("\nServer {} - Sending RegistrationFailure {name}", self.id);
             self.send_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationFailure),
@@ -61,10 +61,10 @@ impl RustBustersServer {
         // Verify the user presence in the hashset
         if self.active_users.contains_key(&src_id) {
             self.active_users.remove(&src_id);
-            println!(
-                "\nServer {} - Sending UnregisterSuccess to {}",
-                self.id, src_id
-            );
+            // println!(
+            //     "\nServer {} - Sending UnregisterSuccess to {}",
+            //     self.id, src_id
+            // );
             // Send Unregistration Success message
             self.send_message(
                 src_id,

@@ -29,7 +29,7 @@ impl RustBustersServer {
 
             // Send the fragments along the route
             for fragment in fragments {
-                println!(
+                debug!(
                     "Server {}: Sending fragment {} of session {} to Client {}",
                     self.id, fragment.fragment_index, session_id, destination_id
                 );
@@ -70,10 +70,6 @@ impl RustBustersServer {
                 .controller_send
                 .send(HostEvent::HostMessageSent(message));
 
-            println!(
-                "Server {}: Sent message to {} via route {:?}",
-                self.id, destination_id, route
-            );
             info!(
                 "Server {}: Sent message to {} via route {:?}",
                 self.id, destination_id, route

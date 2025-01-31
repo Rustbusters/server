@@ -31,7 +31,7 @@ pub struct DbManager {
 
 impl DbManager {
     pub fn new(db_name: String) -> Result<DbManager> {
-        println!("Creating database: {}", db_name);
+        println!("[SERVER] Creating database: {}", db_name);
         let conn = Connection::open(&db_name)?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS messages (

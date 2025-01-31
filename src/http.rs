@@ -29,7 +29,10 @@ impl HttpServer {
 
     pub fn run(self) {
         thread::spawn(move || {
-            println!("[HTTP] Server running at http://{}", self.address);
+            println!(
+                "[SERVER-HTTP] Visit http://{} for the server UI",
+                self.address
+            );
             let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
             loop {
                 if let Ok(Some(request)) = http_server.try_recv() {
@@ -44,7 +47,7 @@ impl HttpServer {
     fn handle_request(&self, mut req: Request) -> Result<(), Error> {
         let method = req.method();
         let url = req.url();
-        // println!("[HTTP] @GET Received request: {method} {url}");
+        info!("[SERVER-HTTP] @GET Received request: {method} {url}");
 
         let response = match (method, url) {
             // @ GET method
@@ -108,7 +111,7 @@ impl HttpServer {
             }
             // Undefined route
             _ => {
-                let response = Response::from_string("[HTTP] @GET 404 Not Found");
+                let response = Response::from_string("[SERVER-HTTP] @GET 404 Not Found");
                 response.with_status_code(404)
             }
         };

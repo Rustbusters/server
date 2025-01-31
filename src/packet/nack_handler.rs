@@ -16,15 +16,10 @@ impl RustBustersServer {
             }
             Some(packet) => {
                 if let Dropped = nack_type {
-                    println!("Server {}: Resending fragment {}", self.id, fragment_index);
                     info!("Server {}: Resending fragment {}", self.id, fragment_index);
                     // TODO: decide if the fragment and message counters should be incremented on resend, only on ack or always
                     if let Some(sender) = self.packet_send.get(&packet.routing_header.hops[1]) {
                         if let Err(err) = sender.send(packet.clone()) {
-                            println!(
-                                "Server {}: Unable to resend fragment {}: {}",
-                                self.id, fragment_index, err
-                            );
                             warn!(
                                 "Server {}: Unable to resend fragment {}: {}",
                                 self.id, fragment_index, err

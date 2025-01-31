@@ -33,7 +33,7 @@ impl WebSocketServer {
 
     pub fn listen(&self, address: String) -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(listener) = TcpListener::bind(&address) {
-            println!("[WS] Server running at ws://{}", address);
+            println!("[SERVER-WS] Server running at ws://{}", address);
             listener
                 .set_nonblocking(true)
                 .expect("Cannot set non-blocking");
@@ -67,14 +67,9 @@ impl WebSocketServer {
     }
 
     fn handle_connection(mut ws_stream: WebSocket<TcpStream>) {
-        println!("[WS] Connection established");
-        let client_id: Uuid = Uuid::new_v4(); // Generate a unique UUID for each client
-
+        println!("[SERVER-WS] Connection established");
         // Handle incoming messages from the client
         loop {
-            // if let Ok(msg) = ws_stream.read() {
-            //     println!("Received message: {msg:?}");
-            // }
             ConnectionsWrapper::receive_and_forward_message(&mut ws_stream);
             thread::sleep(Duration::from_millis(100));
         }

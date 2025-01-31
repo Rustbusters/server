@@ -50,7 +50,6 @@ impl ConnectionsWrapper {
         let channel = ws_channels
             .get(&server_id)
             .expect("No channel found while retrieving messages");
-        println!("Sending through ws_channel");
         channel.send(WebSocketMessage::GetServerMessages(server_id));
     }
 
@@ -87,7 +86,6 @@ impl ConnectionsWrapper {
                             "{{\"server_id\":{server_id},\"stats\":{}}}",
                             serde_json::to_string(&stats).expect("Should be serializable")
                         );
-                        println!("MESSAGE: {ws_message}");
                         ws_stream.write(Message::Text(ws_message));
                         ws_stream.flush();
                     }

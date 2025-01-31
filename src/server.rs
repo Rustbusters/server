@@ -99,13 +99,11 @@ impl RustBustersServer {
 
     pub fn launch(&mut self) {
         // Start network discovery
-        info!("RustBustersServer {} initiated network discovery", self.id);
-
-        // Start network discovery
         info!("Server {} started network discovery", self.id);
         self.discover_network();
 
         // Start network listener
+        info!("Server {} launched the network listener", self.id);
         self.launch_network_listener();
     }
 
@@ -113,30 +111,23 @@ impl RustBustersServer {
         // Listen for incoming messages
         loop {
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
-                println!("Server {} - Discovering network", self.id);
                 info!("Server {} - Discovering network", self.id);
                 self.discover_network();
                 self.last_discovery = Instant::now();
             }
 
-            // let nack = Nack {
-            //     fragment_index: 0, // If the packet is not a fragment, it's considered as a whole, so fragment_index will be 0.
-            //     nack_type: NackType::Dropped,
-            // };
-            // if self.id == 7 {
-            //     let packet = Packet {
-            //         pack_type: PacketType::Nack(nack),
-            //         routing_header: SourceRoutingHeader {
-            //             hop_index: 0,
-            //             hops: vec![0],
-            //         },
-            //         session_id: 0,
-            //     };
-            //     self.packet_send.get(&2).unwrap().send(packet);
-            //     println!("Sending from server {}", self.id);
-            // }
-
             select_biased! {
+                // Handle network packets
+                recv(self.packet_recv) -> packet_res => {
+                    if let Ok(mut packet) = packet_res {
+                        self.handle_packet(packet);
+                        let stats = StatsWrapper::get_stats(self.id);
+                        ConnectionsWrapper::send_stats(self.id, stats);
+                    } else {
+                        error!("Server {} - Error in receiving packet", self.id);
+                    }
+                }
+
                 // Handle UI requests
                 recv(self.ws_receiver) -> ws_message => {
                     if let Ok(message) = ws_message {
@@ -153,19 +144,7 @@ impl RustBustersServer {
                     } else {
                         error!("Server {} - Error in receiving command", self.id);
                     }
-                },
-
-                // Handle network packets
-                recv(self.packet_recv) -> packet_res => {
-                    if let Ok(mut packet) = packet_res {
-                        self.handle_packet(packet);
-                        let stats = StatsWrapper::get_stats(self.id);
-                        println!("Server {} is sending stats to WS", self.id);
-                        ConnectionsWrapper::send_stats(self.id, stats);
-                    } else {
-                        error!("Server {} - Error in receiving packet", self.id);
-                    }
-                },
+                }
 
                 // No more packets
                 default(Duration::from_millis(1000)) => {
@@ -189,7 +168,7 @@ impl RustBustersServer {
                 if let Ok(db_manager) = &self.db_manager {
                     // Retrieve messages from server's database
                     let db_messages = db_manager.get_all();
-                    println!("[DB] {db_messages:?}");
+                    info!("[DB-{}] {db_messages:?}", self.id);
 
                     if let Ok(messages) = db_messages {
                         // Send through the ConnectionsWrapper
