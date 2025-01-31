@@ -19,7 +19,7 @@ impl RustBustersServer {
                     "Server {}: Received FloodRequest with flood_id {}",
                     self.id, flood_request.flood_id
                 );
-                StatsWrapper::inc_messages_received(self.id);
+                StatsWrapper::inc_fragments_received(self.id);
                 self.handle_flood_request(flood_request, packet.session_id);
             }
             PacketType::FloodResponse(flood_response) => {
@@ -27,7 +27,7 @@ impl RustBustersServer {
                     "Server {}: Received FloodResponse with flood_id {}",
                     self.id, flood_response.flood_id
                 );
-                StatsWrapper::inc_messages_received(self.id);
+                StatsWrapper::inc_fragments_received(self.id);
                 self.handle_flood_response(flood_response);
             }
             PacketType::MsgFragment(fragment) => {

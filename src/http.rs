@@ -57,7 +57,7 @@ impl HttpServer {
             }
             // @Get Method
             // Description:
-            (Method::Get, "/api/servers") => {
+            (Method::Get, path) if path.starts_with("/api/servers") => {
                 let parts: Vec<&str> = url.split('/').collect();
 
                 // Check if the URL matches the pattern "/api/servers/:server_id"
@@ -65,9 +65,10 @@ impl HttpServer {
                     let server_id = parts[3].parse::<NodeId>().unwrap(); // Extract server_id
 
                     // Fetch server details based on server_id
-
-                    let messages = ConnectionsWrapper::get_messages(server_id);
-                    let json_response = json!({ "messages": messages }).to_string();
+                    let _ = ConnectionsWrapper::get_messages(server_id);
+                    let json_response =
+                        json!({ "status": "success", "message": "Waiting for messages..." })
+                            .to_string();
 
                     Response::from_string(json_response)
                         .with_header(Header::from_str("Content-Type: application/json").unwrap())

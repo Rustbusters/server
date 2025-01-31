@@ -1,3 +1,4 @@
+use common_utils::message;
 use serde::Deserialize;
 use serde::Serialize;
 use std::time::{Duration, Instant};
@@ -7,7 +8,7 @@ use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
 use crate::db::DbMessage;
-use crate::websocket::message::WebSocketMessage;
+use crate::message::{InternalMessage, ServerMessages, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
@@ -21,17 +22,6 @@ static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketMessage>>>> =
 
 static CONNECTIONS: LazyLock<Mutex<HashMap<NodeId, Connection>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ServerMessages {
-    server_id: NodeId,
-    messages: Vec<DbMessage>,
-}
-
-pub enum InternalMessage {
-    Stats(Stats),
-    ServerMessages(ServerMessages),
-}
 
 pub struct Connection {
     pub sender: Sender<InternalMessage>,
@@ -54,8 +44,14 @@ impl ConnectionsWrapper {
         servers
     }
 
-    pub fn get_messages(server_id: NodeId) -> Vec<DbMessage> {
-        todo!()
+    pub fn get_messages(server_id: NodeId) {
+        // Send message to ws_channel
+        let ws_channels = WS_CHANNELS.lock().unwrap();
+        let channel = ws_channels
+            .get(&server_id)
+            .expect("No channel found while retrieving messages");
+        println!("Sending through ws_channel");
+        channel.send(WebSocketMessage::GetServerMessages(server_id));
     }
 
     pub fn is_empty() -> bool {
@@ -76,10 +72,7 @@ impl ConnectionsWrapper {
         let conn = connections
             .get(&server_id)
             .expect("No connection found while sending stats");
-        let server_message = ServerMessages {
-            server_id,
-            messages,
-        };
+        let server_message = ServerMessages::new(server_id, messages);
         conn.sender
             .send(InternalMessage::ServerMessages(server_message));
     }
@@ -88,13 +81,13 @@ impl ConnectionsWrapper {
         let mut connections = CONNECTIONS.lock().unwrap();
         for (server_id, conn) in connections.iter() {
             if let Ok(message) = conn.receiver.try_recv() {
-                // TODO: add multiple message handling
                 match message {
                     InternalMessage::Stats(stats) => {
                         let ws_message = format!(
                             "{{\"server_id\":{server_id},\"stats\":{}}}",
                             serde_json::to_string(&stats).expect("Should be serializable")
                         );
+                        println!("MESSAGE: {ws_message}");
                         ws_stream.write(Message::Text(ws_message));
                         ws_stream.flush();
                     }

@@ -5,6 +5,7 @@ mod commands;
 mod controller;
 mod db;
 mod http;
+mod message;
 mod network;
 mod packet;
 mod server;

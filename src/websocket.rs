@@ -1,5 +1,3 @@
-pub mod message;
-
 use crate::{ConnectionsWrapper, StatsWrapper};
 
 use rusqlite::Connection;
@@ -19,7 +17,6 @@ use tungstenite::{Message, WebSocket};
 
 pub struct WebSocketServer {
     pub(crate) address: String,
-    // TODO: store crossbeam channels for communication witht the servers
 }
 
 impl WebSocketServer {
@@ -32,8 +29,6 @@ impl WebSocketServer {
         thread::spawn(move || {
             self.listen(self.address.clone());
         });
-
-        // Listens for servers crossbeam channels
     }
 
     pub fn listen(&self, address: String) -> Result<(), Box<dyn std::error::Error>> {
@@ -80,7 +75,6 @@ impl WebSocketServer {
             // if let Ok(msg) = ws_stream.read() {
             //     println!("Received message: {msg:?}");
             // }
-            // TODO: use the crossbeam channels to receive messages from the servers
             ConnectionsWrapper::receive_and_forward_message(&mut ws_stream);
             thread::sleep(Duration::from_millis(100));
         }

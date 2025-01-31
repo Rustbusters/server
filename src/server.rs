@@ -1,7 +1,8 @@
 use crate::db::{self, DbManager};
-use crate::websocket::message::WebSocketMessage;
+use crate::message::WebSocketMessage;
 use crate::{ConnectionsWrapper, RustBustersServerController, StatsWrapper};
 use common_utils::{HostCommand, HostEvent};
+use crossbeam::select;
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
 use futures::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
@@ -15,6 +16,7 @@ use wg_2024::config::Server;
 use wg_2024::network::NodeId;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
+use wg_2024::packet::{Nack, NackType};
 
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
@@ -69,6 +71,9 @@ impl RustBustersServer {
         // Init crossbeam channels network listener -> websocket server
         let ws_receiver = ConnectionsWrapper::add_ws_channel(id);
 
+        let mut rng = rand::thread_rng();
+        let random_number = rng.gen_range(1000..=2000); // Generates a number between 1 and 1000
+
         info!("Server {} spawned succesfully", id);
         Self {
             id,
@@ -80,7 +85,7 @@ impl RustBustersServer {
             known_nodes: HashMap::new(),
             topology: HashMap::new(),
             session_ids: HashMap::new(),
-            flood_id_counter: 0,
+            flood_id_counter: random_number,
             session_id_counter: 0,
             pending_sent: HashMap::new(),
             pending_received: HashMap::new(),
@@ -108,23 +113,38 @@ impl RustBustersServer {
         // Listen for incoming messages
         loop {
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
+                println!("Server {} - Discovering network", self.id);
                 info!("Server {} - Discovering network", self.id);
                 self.discover_network();
                 self.last_discovery = Instant::now();
             }
 
+            // let nack = Nack {
+            //     fragment_index: 0, // If the packet is not a fragment, it's considered as a whole, so fragment_index will be 0.
+            //     nack_type: NackType::Dropped,
+            // };
+            // if self.id == 7 {
+            //     let packet = Packet {
+            //         pack_type: PacketType::Nack(nack),
+            //         routing_header: SourceRoutingHeader {
+            //             hop_index: 0,
+            //             hops: vec![0],
+            //         },
+            //         session_id: 0,
+            //     };
+            //     self.packet_send.get(&2).unwrap().send(packet);
+            //     println!("Sending from server {}", self.id);
+            // }
+
             select_biased! {
-                // Handle network packets
-                recv(self.packet_recv) -> packet_res => {
-                    if let Ok(mut packet) = packet_res {
-                        self.handle_packet(packet);
-                        // TODO: Send stats to websocket server
-                        let stats = StatsWrapper::get_stats(self.id);
-                        ConnectionsWrapper::send_stats(self.id, stats);
+                // Handle UI requests
+                recv(self.ws_receiver) -> ws_message => {
+                    if let Ok(message) = ws_message {
+                        self.handle_ws_message(message);
                     } else {
-                        error!("Server {} - Error in receiving packet", self.id);
+                        error!("Server {} - Error in websocket message receipt", self.id);
                     }
-                },
+                }
 
                 // Handle Simulation Controller commands
                 recv(self.controller_recv) -> command => {
@@ -135,17 +155,22 @@ impl RustBustersServer {
                     }
                 },
 
-                // Handle UI requests
-                recv(self.ws_receiver) -> ws_message => {
-                    if let Ok(message) = ws_message {
-                        self.handle_ws_message(message);
+                // Handle network packets
+                recv(self.packet_recv) -> packet_res => {
+                    if let Ok(mut packet) = packet_res {
+                        self.handle_packet(packet);
+                        let stats = StatsWrapper::get_stats(self.id);
+                        println!("Server {} is sending stats to WS", self.id);
+                        ConnectionsWrapper::send_stats(self.id, stats);
                     } else {
-                        error!("Server {} - Error in websocket message receipt", self.id);
+                        error!("Server {} - Error in receiving packet", self.id);
                     }
-                }
+                },
 
                 // No more packets
-                default(Duration::from_secs(2)) => {}
+                default(Duration::from_millis(1000)) => {
+                    thread::yield_now(); // Give other threads CPU time
+                }
             }
         }
     }
@@ -164,6 +189,7 @@ impl RustBustersServer {
                 if let Ok(db_manager) = &self.db_manager {
                     // Retrieve messages from server's database
                     let db_messages = db_manager.get_all();
+                    println!("[DB] {db_messages:?}");
 
                     if let Ok(messages) = db_messages {
                         // Send through the ConnectionsWrapper

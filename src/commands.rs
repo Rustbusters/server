@@ -12,7 +12,6 @@ use wg_2024::packet::Packet;
 
 impl RustBustersServer {
     pub(crate) fn handle_command(&mut self, command: HostCommand) {
-        todo!();
         match command {
             HostCommand::SendRandomMessage(dest_id) => {
                 self.send_message(
