@@ -3,18 +3,24 @@ use common_utils::Stats;
 use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;
 
-// WebSocket Messages
+// This file specifies the types of messages exchanged by some server components
+
+/// WebSocket Messages
+/// This message is sent as a request from the HTTP server to the single Server channel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WebSocketMessage {
     GetServerMessages(NodeId),
 }
 
-// Internal Server Messages
+/// Internal Server Messages
+/// This message is exchanged between the Network Server and the WebSocket Server.
 pub enum InternalMessage {
     Stats(Stats),
     ServerMessages(ServerMessages),
 }
 
+/// Server Messages
+/// This message is sent from the Network Server to the WebSocket Server for some specific server info.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerMessages {
     pub(crate) server_id: NodeId,

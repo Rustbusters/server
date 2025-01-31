@@ -46,7 +46,6 @@ impl RustBustersServer {
         } else {
             // Already exists
             // Send Registration Failure message
-            // println!("\nServer {} - Sending RegistrationFailure {name}", self.id);
             self.send_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationFailure),
@@ -61,10 +60,7 @@ impl RustBustersServer {
         // Verify the user presence in the hashset
         if self.active_users.contains_key(&src_id) {
             self.active_users.remove(&src_id);
-            // println!(
-            //     "\nServer {} - Sending UnregisterSuccess to {}",
-            //     self.id, src_id
-            // );
+
             // Send Unregistration Success message
             self.send_message(
                 src_id,
@@ -80,7 +76,7 @@ impl RustBustersServer {
                 );
             });
         } else {
-            // already exist
+            // Already exists
             // Send Unregsiteration Failure message
             self.send_message(
                 src_id,

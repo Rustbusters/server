@@ -25,31 +25,32 @@ use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 use std::collections::HashSet;
 
 pub struct RustBustersServer {
+    // Basic configuration
     pub(crate) id: NodeId,
     pub(crate) controller_send: Sender<HostEvent>,
     pub(crate) controller_recv: Receiver<HostCommand>,
-    pub(crate) packet_recv: Receiver<Packet>,
     pub(crate) packet_send: HashMap<NodeId, Sender<Packet>>,
-    pub(crate) ws_receiver: Receiver<WebSocketMessage>,
+    pub(crate) packet_recv: Receiver<Packet>,
+    pub(crate) ws_receiver: Receiver<WebSocketMessage>, // receiver for the websocket server
+
     pub(crate) known_nodes: HashMap<NodeId, NodeType>,
     pub(crate) topology: HashMap<NodeId, Vec<NodeId>>,
+
     pub(crate) flood_id_counter: u64,
     pub(crate) session_id_counter: u64,
-    // (session_id, fragment_index) -> packet
-    pub(crate) pending_sent: HashMap<(u64, u64), Packet>,
-    // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
-    pub(crate) pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>,
-    websocket_server_address: String,
+
+    pub(crate) pending_sent: HashMap<(u64, u64), Packet>, // (session_id, fragment_index) -> packet
+    pub(crate) pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>, // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
 
     // Map for storing the active user sessions
     pub(crate) active_users: HashMap<NodeId, String>,
 
     // Network discovery
-    last_discovery: Instant,
-    discovery_interval: Duration,
+    last_discovery: Instant,      // last time the network discovery was made
+    discovery_interval: Duration, // the interval at which to perform the discovery
 
     // Database manager
-    pub(crate) db_manager: Result<DbManager, rusqlite::Error>,
+    pub(crate) db_manager: Result<DbManager, rusqlite::Error>, // manages the internal server's database
 }
 
 impl RustBustersServer {
@@ -57,9 +58,8 @@ impl RustBustersServer {
         id: NodeId,
         controller_send: Sender<HostEvent>,
         controller_recv: Receiver<HostCommand>,
-        packet_recv: Receiver<Packet>,
         packet_send: HashMap<NodeId, Sender<Packet>>,
-        websocket_server_address: String,
+        packet_recv: Receiver<Packet>,
         discovery_interval: Option<Duration>,
     ) -> Self {
         let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(30));
@@ -80,8 +80,8 @@ impl RustBustersServer {
             id,
             controller_send,
             controller_recv,
-            packet_recv,
             packet_send,
+            packet_recv,
             ws_receiver,
             known_nodes: HashMap::new(),
             topology: HashMap::new(),
@@ -89,7 +89,6 @@ impl RustBustersServer {
             session_id_counter: 0,
             pending_sent: HashMap::new(),
             pending_received: HashMap::new(),
-            websocket_server_address,
             active_users: HashMap::new(),
             last_discovery: Instant::now(),
             discovery_interval,

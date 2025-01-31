@@ -17,7 +17,7 @@ impl RustBustersServer {
             Some(packet) => {
                 if let Dropped = nack_type {
                     info!("Server {}: Resending fragment {}", self.id, fragment_index);
-                    // TODO: decide if the fragment and message counters should be incremented on resend, only on ack or always
+                    // Resend the fragment
                     if let Some(sender) = self.packet_send.get(&packet.routing_header.hops[1]) {
                         if let Err(err) = sender.send(packet.clone()) {
                             warn!(
@@ -30,14 +30,12 @@ impl RustBustersServer {
                     }
                 } else {
                     match nack_type {
-                        NackType::ErrorInRouting(_) => {
-                            // TODO: implement this
-                            unimplemented!(
+                        NackType::ErrorInRouting(drone_id) => {
+                            warn!(
                                 "Server {}: Nack for fragment {} with type {:?}",
-                                self.id,
-                                fragment_index,
-                                nack_type
+                                self.id, fragment_index, nack_type
                             );
+                            self.topology.remove(&drone_id);
                         }
                         NackType::DestinationIsDrone | NackType::UnexpectedRecipient(_) => {
                             warn!(
