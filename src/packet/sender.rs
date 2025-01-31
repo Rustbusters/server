@@ -20,12 +20,8 @@ impl RustBustersServer {
             // Disassemble the message
             let fragments = self.disassemble_message(&message);
 
-            // Either use the existing session id or create a new one based on the last session id used
-            let mut session_id = self
-                .session_ids
-                .get(&destination_id)
-                .unwrap_or(&self.session_id_counter)
-                .clone();
+            self.session_id_counter += 1;
+            let session_id = self.session_id_counter;
 
             // Send the fragments along the route
             for fragment in fragments {
