@@ -1,4 +1,4 @@
-use crate::{RustBustersServer, StatsWrapper};
+use crate::{RustBustersServer, StatsManager};
 use log::info;
 
 impl RustBustersServer {

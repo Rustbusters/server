@@ -12,9 +12,9 @@ static STATS: LazyLock<Mutex<HashMap<NodeId, Stats>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Wrapper for safely interacting with the global stats
-pub struct StatsWrapper;
+pub struct StatsManager;
 
-impl StatsWrapper {
+impl StatsManager {
     pub fn get_or_create_stats(server_id: NodeId) -> Stats {
         let mut stats = STATS.lock().unwrap();
         stats.entry(server_id).or_insert_with(Stats::new).clone()

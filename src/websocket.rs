@@ -1,6 +1,6 @@
-use crate::{ConnectionsWrapper, StatsWrapper};
+use crate::{InternalChannelsManager, StatsManager};
 
-use log::info;
+use log::{info, warn};
 use rusqlite::Connection;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
@@ -32,7 +32,7 @@ impl WebSocketServer {
         });
     }
 
-    pub fn listen(&self, address: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn listen(&self, address: String) {
         if let Ok(listener) = TcpListener::bind(&address) {
             info!("[SERVER-WS] Server running at ws://{}", address);
             listener
@@ -56,14 +56,12 @@ impl WebSocketServer {
                     }
                 }
 
-                if ConnectionsWrapper::is_empty() {
+                if InternalChannelsManager::is_empty() {
                     break;
                 }
             }
-
-            Ok(())
         } else {
-            Err("Failed to bind WebSocket server")?
+            eprintln!("Failed to bind WebSocket server");
         }
     }
 
@@ -71,7 +69,7 @@ impl WebSocketServer {
         info!("[SERVER-WS] Connection established");
         // Handle incoming messages from the client
         loop {
-            ConnectionsWrapper::receive_and_forward_message(&mut ws_stream);
+            InternalChannelsManager::receive_and_forward_message(&mut ws_stream);
             thread::sleep(Duration::from_millis(100));
         }
     }

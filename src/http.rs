@@ -1,4 +1,4 @@
-use crate::ConnectionsWrapper;
+use crate::{InternalChannelsManager, WSChannelsManager};
 use log::info;
 use serde_json::json;
 use std::fs;
@@ -68,7 +68,7 @@ impl HttpServer {
                     let server_id = parts[3].parse::<NodeId>().unwrap(); // Extract server_id
 
                     // Fetch server details based on server_id
-                    let _ = ConnectionsWrapper::get_messages(server_id);
+                    let _ = WSChannelsManager::get_messages(server_id);
                     let json_response =
                         json!({ "status": "success", "message": "Waiting for messages..." })
                             .to_string();
@@ -77,7 +77,7 @@ impl HttpServer {
                         .with_header(Header::from_str("Content-Type: application/json").unwrap())
                         .with_header(Header::from_str("Access-Control-Allow-Origin: *").unwrap())
                 } else {
-                    let servers = ConnectionsWrapper::get_servers();
+                    let servers = InternalChannelsManager::get_servers();
                     // Serialize the servers to JSON
                     let json_data = serde_json::to_string(&servers).unwrap();
 

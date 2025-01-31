@@ -17,49 +17,37 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, LazyLock, Mutex};
 use tungstenite::{Message, WebSocket};
 
-static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketMessage>>>> =
+// Internal Channels: communication between the Network Server and the WebSocket Server
+static INTERNAL_CHANNELS: LazyLock<Mutex<HashMap<NodeId, InternalChannel>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
-
-static CONNECTIONS: LazyLock<Mutex<HashMap<NodeId, Connection>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-pub struct Connection {
+struct InternalChannel {
     pub sender: Sender<InternalMessage>,
     pub receiver: Receiver<InternalMessage>,
 }
 
-impl Connection {
+impl InternalChannel {
     pub(crate) fn new() -> Self {
         let (sender, receiver) = unbounded::<InternalMessage>();
         Self { sender, receiver }
     }
 }
 
-pub struct ConnectionsWrapper;
+pub struct InternalChannelsManager;
 
-impl ConnectionsWrapper {
+impl InternalChannelsManager {
     pub fn get_servers() -> Vec<NodeId> {
-        let connections = CONNECTIONS.lock().unwrap();
+        let connections = INTERNAL_CHANNELS.lock().unwrap();
         let servers = connections.keys().copied().collect();
         servers
     }
 
-    pub fn get_messages(server_id: NodeId) {
-        // Send message to ws_channel
-        let ws_channels = WS_CHANNELS.lock().unwrap();
-        let channel = ws_channels
-            .get(&server_id)
-            .expect("No channel found while retrieving messages");
-        channel.send(WebSocketMessage::GetServerMessages(server_id));
-    }
-
     pub fn is_empty() -> bool {
-        let mut connections = CONNECTIONS.lock().unwrap();
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         connections.is_empty()
     }
 
     pub fn send_stats(server_id: NodeId, stats: Stats) {
-        let mut connections = CONNECTIONS.lock().unwrap();
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         let conn = connections
             .get(&server_id)
             .expect("No connection found while sending stats");
@@ -67,7 +55,7 @@ impl ConnectionsWrapper {
     }
 
     pub fn send_server_messages(server_id: NodeId, messages: Vec<DbMessage>) {
-        let mut connections = CONNECTIONS.lock().unwrap();
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         let conn = connections
             .get(&server_id)
             .expect("No connection found while sending stats");
@@ -77,7 +65,7 @@ impl ConnectionsWrapper {
     }
 
     pub fn receive_and_forward_message(ws_stream: &mut WebSocket<TcpStream>) {
-        let mut connections = CONNECTIONS.lock().unwrap();
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         for (server_id, conn) in connections.iter() {
             if let Ok(message) = conn.receiver.try_recv() {
                 match message {
@@ -105,12 +93,31 @@ impl ConnectionsWrapper {
         }
     }
 
-    pub fn add_connection(server_id: NodeId) {
-        let mut connections = CONNECTIONS.lock().unwrap();
-        connections.entry(server_id).or_insert_with(Connection::new);
+    pub fn add_channel(server_id: NodeId) {
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
+        connections
+            .entry(server_id)
+            .or_insert_with(InternalChannel::new);
+    }
+}
+
+// WebSocket Message Channels
+static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketMessage>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+pub struct WSChannelsManager;
+
+impl WSChannelsManager {
+    pub fn get_messages(server_id: NodeId) {
+        // Send message to ws_channel
+        let ws_channels = WS_CHANNELS.lock().unwrap();
+        let channel = ws_channels
+            .get(&server_id)
+            .expect("No channel found while retrieving messages");
+        channel.send(WebSocketMessage::GetServerMessages(server_id));
     }
 
-    pub fn add_ws_channel(server_id: NodeId) -> Receiver<WebSocketMessage> {
+    pub fn add_channel(server_id: NodeId) -> Receiver<WebSocketMessage> {
         let (sender, receiver) = unbounded::<WebSocketMessage>();
         let mut ws_channels = WS_CHANNELS.lock().unwrap();
         ws_channels.entry(server_id).or_insert(sender);

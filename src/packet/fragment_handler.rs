@@ -1,5 +1,5 @@
 use crate::RustBustersServer;
-use crate::StatsWrapper;
+use crate::StatsManager;
 use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
 use common_utils::{ClientToServerMessage, HostMessage, MessageBody, ServerToClientMessage, User};
 use log::{info, warn};
@@ -43,7 +43,7 @@ impl RustBustersServer {
                         "Server {}: Received full message {:?} of session {}",
                         self.id, msg, session_id
                     );
-                    StatsWrapper::inc_messages_received(self.id);
+                    StatsManager::inc_messages_received(self.id);
                     if let Err(err) = self.controller_send.send(HostMessageReceived(msg)) {
                         warn!(
                             "Server {}: Unable to send MessageReceived(...) to controller: {}",
@@ -88,7 +88,7 @@ impl RustBustersServer {
                 info!("Node {}: Sending ack through SC", self.id);
             } else {
                 // Increment the number of sent Acks
-                StatsWrapper::inc_acks_sent(self.id);
+                StatsManager::inc_acks_sent(self.id);
                 info!(
                     "Node {}: Sent Ack for fragment {} to {}",
                     self.id, fragment_index, next_hop

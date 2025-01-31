@@ -14,5 +14,6 @@ mod websocket;
 
 pub use controller::RustBustersServerController;
 pub use server::RustBustersServer;
-pub use state::ConnectionsWrapper;
-pub use state::StatsWrapper;
+pub use state::InternalChannelsManager;
+pub use state::StatsManager;
+pub use state::WSChannelsManager;

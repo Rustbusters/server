@@ -3,9 +3,16 @@ use common_utils::Stats;
 use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;
 
+// WebSocket Messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WebSocketMessage {
     GetServerMessages(NodeId),
+}
+
+// Internal Server Messages
+pub enum InternalMessage {
+    Stats(Stats),
+    ServerMessages(ServerMessages),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,9 +28,4 @@ impl ServerMessages {
             messages,
         }
     }
-}
-
-pub enum InternalMessage {
-    Stats(Stats),
-    ServerMessages(ServerMessages),
 }

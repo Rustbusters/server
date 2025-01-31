@@ -1,4 +1,4 @@
-use crate::{RustBustersServer, StatsWrapper};
+use crate::{RustBustersServer, StatsManager};
 use log::{info, warn};
 use wg_2024::packet::NackType;
 use wg_2024::packet::NackType::Dropped;
@@ -25,7 +25,7 @@ impl RustBustersServer {
                                 self.id, fragment_index, err
                             );
                         } else {
-                            StatsWrapper::inc_fragments_sent(self.id);
+                            StatsManager::inc_fragments_sent(self.id);
                         }
                     }
                 } else {

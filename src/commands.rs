@@ -1,4 +1,4 @@
-use crate::{RustBustersServer, StatsWrapper};
+use crate::{RustBustersServer, StatsManager};
 use common_utils::Stats;
 use common_utils::{
     HostCommand, HostEvent, HostMessage, MessageBody, MessageContent, ServerToClientMessage,
@@ -35,7 +35,7 @@ impl RustBustersServer {
                 warn!("Server {}: Network Discovery initiated", self.id);
             }
             HostCommand::StatsRequest => {
-                let stats = StatsWrapper::get_or_create_stats(self.id);
+                let stats = StatsManager::get_or_create_stats(self.id);
                 if let Err(err) = self.controller_send.send(HostEvent::StatsResponse(stats)) {
                     warn!(
                         "Server {}: Unable to send StatsResponse(...) to simulation controller: {}",

@@ -1,6 +1,8 @@
 use crate::db::{self, DbManager};
 use crate::message::WebSocketMessage;
-use crate::{ConnectionsWrapper, RustBustersServerController, StatsWrapper};
+use crate::{
+    InternalChannelsManager, RustBustersServerController, StatsManager, WSChannelsManager,
+};
 use common_utils::{HostCommand, HostEvent};
 use crossbeam::select;
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
@@ -65,11 +67,11 @@ impl RustBustersServer {
         let db_name = format!("server_{}.db", id);
 
         // Init stats for server
-        StatsWrapper::get_or_create_stats(id);
+        StatsManager::get_or_create_stats(id);
         // Init crossbeam channels websocket server -> network listener
-        ConnectionsWrapper::add_connection(id);
+        InternalChannelsManager::add_channel(id);
         // Init crossbeam channels network listener -> websocket server
-        let ws_receiver = ConnectionsWrapper::add_ws_channel(id);
+        let ws_receiver = WSChannelsManager::add_channel(id);
 
         let mut rng = rand::thread_rng();
         let random_number = rng.gen_range(1000..=2000); // Generates a number between 1 and 1000
@@ -121,8 +123,7 @@ impl RustBustersServer {
                 recv(self.packet_recv) -> packet_res => {
                     if let Ok(mut packet) = packet_res {
                         self.handle_packet(packet);
-                        let stats = StatsWrapper::get_stats(self.id);
-                        ConnectionsWrapper::send_stats(self.id, stats);
+                        self.send_stats();
                     } else {
                         error!("Server {} - Error in receiving packet", self.id);
                     }
@@ -162,7 +163,12 @@ impl RustBustersServer {
         }
     }
 
-    pub(crate) fn handle_ws_message(&self, message: WebSocketMessage) {
+    fn send_stats(&self) {
+        let stats = StatsManager::get_stats(self.id);
+        InternalChannelsManager::send_stats(self.id, stats);
+    }
+
+    fn handle_ws_message(&self, message: WebSocketMessage) {
         match message {
             WebSocketMessage::GetServerMessages(server_id) => {
                 if let Ok(db_manager) = &self.db_manager {
@@ -171,8 +177,8 @@ impl RustBustersServer {
                     info!("[DB-{}] {db_messages:?}", self.id);
 
                     if let Ok(messages) = db_messages {
-                        // Send through the ConnectionsWrapper
-                        ConnectionsWrapper::send_server_messages(server_id, messages);
+                        // Send through the internal network server -> websocket server messages
+                        InternalChannelsManager::send_server_messages(server_id, messages);
                     }
                 }
             }

@@ -1,5 +1,6 @@
-mod connection;
+mod channels;
 mod stats;
 
-pub use connection::ConnectionsWrapper;
-pub use stats::StatsWrapper;
+pub use channels::InternalChannelsManager;
+pub use channels::WSChannelsManager;
+pub use stats::StatsManager;

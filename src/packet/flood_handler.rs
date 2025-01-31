@@ -1,4 +1,4 @@
-use crate::{RustBustersServer, StatsWrapper};
+use crate::{RustBustersServer, StatsManager};
 use common_utils::HostEvent::ControllerShortcut;
 use log::info;
 use log::warn;
