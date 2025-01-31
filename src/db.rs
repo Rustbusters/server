@@ -1,4 +1,5 @@
 use common_utils::{ClientToServerMessage, HostMessage, MessageBody};
+use log::info;
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -25,13 +26,14 @@ impl DbMessage {
 }
 
 pub struct DbManager {
+    id: NodeId,
     name: String,
     conn: Connection,
 }
 
 impl DbManager {
-    pub fn new(db_name: String) -> Result<DbManager> {
-        println!("[SERVER] Creating database: {}", db_name);
+    pub fn new(server_id: NodeId, db_name: String) -> Result<DbManager> {
+        info!("[SERVER-{}] Creating database: {}", server_id, db_name);
         let conn = Connection::open(&db_name)?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS messages (
@@ -43,6 +45,7 @@ impl DbManager {
             [],
         )?;
         Ok(DbManager {
+            id: server_id,
             name: db_name,
             conn,
         })

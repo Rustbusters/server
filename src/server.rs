@@ -93,7 +93,7 @@ impl RustBustersServer {
             active_users: HashMap::new(),
             last_discovery: Instant::now(),
             discovery_interval,
-            db_manager: DbManager::new(db_name),
+            db_manager: DbManager::new(id, db_name),
         }
     }
 

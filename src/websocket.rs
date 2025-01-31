@@ -1,5 +1,6 @@
 use crate::{ConnectionsWrapper, StatsWrapper};
 
+use log::info;
 use rusqlite::Connection;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
@@ -33,7 +34,7 @@ impl WebSocketServer {
 
     pub fn listen(&self, address: String) -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(listener) = TcpListener::bind(&address) {
-            println!("[SERVER-WS] Server running at ws://{}", address);
+            info!("[SERVER-WS] Server running at ws://{}", address);
             listener
                 .set_nonblocking(true)
                 .expect("Cannot set non-blocking");
@@ -67,7 +68,7 @@ impl WebSocketServer {
     }
 
     fn handle_connection(mut ws_stream: WebSocket<TcpStream>) {
-        println!("[SERVER-WS] Connection established");
+        info!("[SERVER-WS] Connection established");
         // Handle incoming messages from the client
         loop {
             ConnectionsWrapper::receive_and_forward_message(&mut ws_stream);
