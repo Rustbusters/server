@@ -6,7 +6,6 @@ use crate::{
 use common_utils::{HostCommand, HostEvent};
 use crossbeam::select;
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
-use futures::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
 use rand::*;
 use std::collections::HashMap;

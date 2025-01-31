@@ -46,9 +46,12 @@ impl RustBustersServer {
         } else {
             // Already exists
             // Send Registration Failure message
+
             self.send_message(
                 src_id,
-                HostMessage::FromServer(ServerToClientMessage::RegistrationFailure),
+                HostMessage::FromServer(ServerToClientMessage::RegistrationFailure {
+                    reason: "You are already registered".to_string(),
+                }),
             );
         }
     }
@@ -76,11 +79,13 @@ impl RustBustersServer {
                 );
             });
         } else {
-            // Already exists
+            // Already unregistered
             // Send Unregsiteration Failure message
             self.send_message(
                 src_id,
-                HostMessage::FromServer(ServerToClientMessage::UnregisterFailure),
+                HostMessage::FromServer(ServerToClientMessage::UnregisterFailure {
+                    reason: "You are already unregistered".to_string(),
+                }),
             );
         }
     }
