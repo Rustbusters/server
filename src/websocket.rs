@@ -1,10 +1,11 @@
+use crate::utils::traits::{Runnable, Service};
 use crate::{InternalChannelsManager, StatsManager};
 
 use log::{info, warn};
 use rusqlite::Connection;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use url::Url;
 use wg_2024::config::Server;
@@ -20,21 +21,20 @@ pub struct WebSocketServer {
     pub(crate) address: String,
 }
 
-impl WebSocketServer {
-    pub fn new(address: String) -> Self {
-        Self { address }
-    }
-
-    pub fn run(self) {
+impl Runnable for WebSocketServer {
+    fn run(self) -> Option<JoinHandle<()>> {
         // Listens for incoming websocket connections
         thread::spawn(move || {
-            self.listen(self.address.clone());
+            self.start();
         });
+        None
     }
+}
 
-    pub fn listen(&self, address: String) {
-        if let Ok(listener) = TcpListener::bind(&address) {
-            info!("[SERVER-WS] Server running at ws://{}", address);
+impl Service for WebSocketServer {
+    fn start(self) {
+        if let Ok(listener) = TcpListener::bind(&self.address) {
+            info!("[SERVER-WSS] Listening at ws://{}", &self.address);
             listener
                 .set_nonblocking(true)
                 .expect("Cannot set non-blocking");
@@ -64,9 +64,15 @@ impl WebSocketServer {
             eprintln!("Failed to bind WebSocket server");
         }
     }
+}
+
+impl WebSocketServer {
+    pub fn new(address: String) -> Self {
+        Self { address }
+    }
 
     fn handle_connection(mut ws_stream: WebSocket<TcpStream>) {
-        info!("[SERVER-WS] Connection established");
+        info!("[SERVER-WSS] Connection established");
         ws_stream.get_ref().set_nonblocking(true).unwrap();
 
         // Handle incoming messages from the client

@@ -1,18 +1,25 @@
 use crate::http::HttpServer;
+use crate::utils::traits::Runnable;
 use crate::websocket::WebSocketServer;
 use crate::RustBustersServer;
 
-use futures::{SinkExt, StreamExt};
-use std::thread;
+use std::thread::{self, JoinHandle};
 use wg_2024::config::Server;
 
 pub struct RustBustersServerController {
     // HTTP server address
-    pub(crate) http_server_address: String,
+    http_server_address: String,
     // Path for storing static content
-    pub(crate) http_public_path: String,
+    http_public_path: String,
     // WebSocket server address
-    pub(crate) ws_server_address: String,
+    ws_server_address: String,
+}
+
+impl Runnable for RustBustersServerController {
+    fn run(self) -> Option<JoinHandle<()>> {
+        self.start();
+        None
+    }
 }
 
 impl RustBustersServerController {
@@ -28,21 +35,20 @@ impl RustBustersServerController {
         }
     }
 
-    pub fn launch(&self) {
-        self.run_ui();
-        self.run_websocket_server();
+    fn start(self) {
+        // Run the HTTP server UI
+        Self::run_ui(self.http_server_address, self.http_public_path);
+        // Run the WS server
+        Self::run_websocket_server(self.ws_server_address);
     }
 
-    fn run_ui(&self) {
-        let http_server = HttpServer::new(
-            self.http_server_address.clone(),
-            self.http_public_path.clone(),
-        );
+    fn run_ui(http_server_address: String, http_public_path: String) {
+        let http_server = HttpServer::new(http_server_address, http_public_path);
         http_server.run();
     }
 
-    fn run_websocket_server(&self) {
-        let websocket_server = WebSocketServer::new(self.ws_server_address.clone());
+    fn run_websocket_server(ws_server_address: String) {
+        let websocket_server = WebSocketServer::new(ws_server_address);
         websocket_server.run();
     }
 }

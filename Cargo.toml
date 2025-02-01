@@ -19,4 +19,3 @@ url = "2.5.4"
 crossbeam = "0.8.4"
 uuid = { version = "1.12.1", features = ["v4"] }  # For generating unique client IDs
 rusqlite = { version = "0.30", features = ["bundled"] }
-futures = "*"

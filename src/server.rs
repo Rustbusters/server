@@ -1,5 +1,6 @@
 use crate::db::{self, DbManager};
-use crate::message::WebSocketMessage;
+use crate::utils::message::WebSocketMessage;
+use crate::utils::traits::{Runnable, Service};
 use crate::{
     InternalChannelsManager, RustBustersServerController, StatsManager, WSChannelsManager,
 };
@@ -11,7 +12,7 @@ use rand::*;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::{Arc, LazyLock, Mutex};
-use std::thread::{self, sleep};
+use std::thread::{self, sleep, JoinHandle};
 use std::time::{Duration, Instant};
 use wg_2024::config::Server;
 use wg_2024::network::NodeId;
@@ -50,6 +51,27 @@ pub struct RustBustersServer {
 
     // Database manager
     pub(crate) db_manager: Result<DbManager, rusqlite::Error>, // manages the internal server's database
+}
+
+impl Runnable for RustBustersServer {
+    fn run(mut self) -> Option<JoinHandle<()>> {
+        let handle = thread::spawn(move || {
+            self.start();
+        });
+        Some(handle)
+    }
+}
+
+impl Service for RustBustersServer {
+    fn start(mut self) {
+        // Start network discovery
+        info!("Server {} started network discovery", self.id);
+        self.launch_network_discovery();
+
+        // Start network listener
+        info!("Server {} launched the network listener", self.id);
+        self.launch_network_listener();
+    }
 }
 
 impl RustBustersServer {
@@ -95,22 +117,12 @@ impl RustBustersServer {
         }
     }
 
-    pub fn launch(&mut self) {
-        // Start network discovery
-        info!("Server {} started network discovery", self.id);
-        self.discover_network();
-
-        // Start network listener
-        info!("Server {} launched the network listener", self.id);
-        self.launch_network_listener();
-    }
-
-    pub fn launch_network_listener(&mut self) {
+    fn launch_network_listener(&mut self) {
         // Listen for incoming messages
         loop {
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
                 info!("Server {} - Discovering network", self.id);
-                self.discover_network();
+                self.launch_network_discovery();
                 self.last_discovery = Instant::now();
             }
 

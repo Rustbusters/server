@@ -8,7 +8,7 @@ use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
 use crate::db::DbMessage;
-use crate::message::{InternalMessage, ServerMessages, WebSocketMessage};
+use crate::utils::message::{InternalMessage, ServerMessages, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};

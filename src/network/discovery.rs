@@ -6,7 +6,7 @@ use wg_2024::packet::{FloodRequest, Packet, PacketType};
 use crate::RustBustersServer;
 
 impl RustBustersServer {
-    pub fn discover_network(&mut self) {
+    pub fn launch_network_discovery(&mut self) {
         // Generate a unique flood_id
         self.flood_id_counter += 1;
         let flood_id = self.flood_id_counter;

@@ -31,7 +31,7 @@ impl RustBustersServer {
                 );
             }
             HostCommand::DiscoverNetwork => {
-                self.discover_network();
+                self.launch_network_discovery();
                 warn!("Server {}: Network Discovery initiated", self.id);
             }
             HostCommand::StatsRequest => {
@@ -49,12 +49,12 @@ impl RustBustersServer {
             }
             HostCommand::AddSender(sender_id, sender) => {
                 self.packet_send.insert(sender_id, sender);
-                self.discover_network();
+                self.launch_network_discovery();
                 warn!("Server {}: Sender added", self.id);
             }
             HostCommand::RemoveSender(sender_id) => {
                 self.packet_send.remove(&sender_id);
-                self.discover_network();
+                self.launch_network_discovery();
                 warn!("Server {}: Sender removed", self.id);
             }
             _ => {}

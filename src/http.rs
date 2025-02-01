@@ -1,8 +1,10 @@
+use crate::utils::traits::{Runnable, Service};
 use crate::{InternalChannelsManager, WSChannelsManager};
 use log::info;
 use serde_json::json;
 use std::fs;
 use std::str::FromStr;
+use std::thread::JoinHandle;
 use std::{io::Error, thread};
 use tiny_http::{Header, Method, Request, Response, StatusCode};
 use wg_2024::config::Server;
@@ -12,6 +14,32 @@ pub struct HttpServer {
     address: String,
     routes: Vec<String>,
     public_path: String,
+}
+
+impl Runnable for HttpServer {
+    fn run(self) -> Option<JoinHandle<()>> {
+        thread::spawn(move || {
+            self.start();
+        });
+        None
+    }
+}
+
+impl Service for HttpServer {
+    fn start(self) {
+        println!(
+            "[SERVER-HTTP] Visit http://{} for the server UI",
+            self.address
+        );
+        let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
+        loop {
+            if let Ok(Some(request)) = http_server.try_recv() {
+                if let Err(e) = self.handle_request(request) {
+                    eprintln!("Error handling request: {e}");
+                }
+            }
+        }
+    }
 }
 
 impl HttpServer {
@@ -25,23 +53,6 @@ impl HttpServer {
             routes,
             public_path,
         }
-    }
-
-    pub fn run(self) {
-        thread::spawn(move || {
-            println!(
-                "[SERVER-HTTP] Visit http://{} for the server UI",
-                self.address
-            );
-            let http_server = tiny_http::Server::http(self.address.clone()).unwrap();
-            loop {
-                if let Ok(Some(request)) = http_server.try_recv() {
-                    if let Err(e) = self.handle_request(request) {
-                        eprintln!("Error handling request: {e}");
-                    }
-                }
-            }
-        });
     }
 
     fn handle_request(&self, mut req: Request) -> Result<(), Error> {
