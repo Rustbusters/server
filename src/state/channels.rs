@@ -20,6 +20,7 @@ use tungstenite::{Message, WebSocket};
 // Internal Channels: communication between the Network Server and the WebSocket Server
 static INTERNAL_CHANNELS: LazyLock<Mutex<HashMap<NodeId, InternalChannel>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
 struct InternalChannel {
     pub sender: Sender<InternalMessage>,
     pub receiver: Receiver<InternalMessage>,
