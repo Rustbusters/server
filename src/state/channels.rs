@@ -67,12 +67,12 @@ impl InternalChannelsManager {
     pub fn receive_and_forward_message(ws_stream: &mut WebSocket<TcpStream>) {
         let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         for (server_id, conn) in connections.iter() {
-            println!("Cycling on INTERNAL_CHANNELS");
+            // println!("Cycling on INTERNAL_CHANNELS");
             while let Ok(message) = conn.receiver.try_recv() {
-                println!("Trying to receive on Server {server_id}");
+                // println!("Trying to receive on Server {server_id}");
                 match message {
                     InternalMessage::Stats(stats) => {
-                        println!("Received Stats on Server {server_id}");
+                        // println!("Received Stats on Server {server_id}");
                         let ws_message = format!(
                             "{{\"server_id\":{server_id},\"stats\":{}}}",
                             serde_json::to_string(&stats).expect("Should be serializable")
@@ -81,7 +81,7 @@ impl InternalChannelsManager {
                         ws_stream.flush();
                     }
                     InternalMessage::ServerMessages(messages) => {
-                        println!("Received ServerMessages on Server {server_id}");
+                        // println!("Received ServerMessages on Server {server_id}");
                         let ws_message = format!(
                             "{{\"server_id\":{},\"messages\":{}}}",
                             messages.server_id,
