@@ -169,12 +169,11 @@ impl RustBustersServer {
             WebSocketMessage::GetServerMessages(server_id) => {
                 if let Ok(db_manager) = &self.db_manager {
                     // Retrieve messages from server's database
-                    let db_messages = db_manager.get_all();
-                    info!("[DB-{}] {db_messages:?}", self.id);
-
-                    if let Ok(messages) = db_messages {
+                    if let Ok(db_messages) = db_manager.get_all() {
+                        println!("[DB-{}] {db_messages:?}", self.id);
+                        info!("[DB-{}] {db_messages:?}", self.id);
                         // Send through the internal network server -> websocket server messages
-                        InternalChannelsManager::send_server_messages(server_id, messages);
+                        InternalChannelsManager::send_server_messages(server_id, db_messages);
                     }
                 }
             }

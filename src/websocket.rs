@@ -14,7 +14,7 @@ use common_utils::Stats;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use tungstenite::{Message, WebSocket};
+use tungstenite::{Error, Message, WebSocket};
 
 pub struct WebSocketServer {
     pub(crate) address: String,
@@ -67,10 +67,16 @@ impl WebSocketServer {
 
     fn handle_connection(mut ws_stream: WebSocket<TcpStream>) {
         info!("[SERVER-WS] Connection established");
+        ws_stream.get_ref().set_nonblocking(true).unwrap();
+
         // Handle incoming messages from the client
         loop {
             InternalChannelsManager::receive_and_forward_message(&mut ws_stream);
             thread::sleep(Duration::from_millis(100));
+
+            if let Err(Error::ConnectionClosed | Error::AlreadyClosed) = ws_stream.read() {
+                break;
+            }
         }
     }
 }

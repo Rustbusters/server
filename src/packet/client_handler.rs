@@ -1,4 +1,4 @@
-use crate::RustBustersServer;
+use crate::{InternalChannelsManager, RustBustersServer};
 use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
 use common_utils::{
     ClientToServerMessage, HostMessage, MessageBody, MessageContent, ServerToClientMessage, User,
@@ -17,6 +17,17 @@ impl RustBustersServer {
         // println!("\nServer {} - Received RegisterUser {name}", self.id);
         // Verify the user presence in the hashset
         if !self.active_users.contains_key(&src_id) {
+            // Name already taken
+            if self.active_users.values().any(|n| n == name) {
+                self.send_message(
+                    src_id,
+                    HostMessage::FromServer(ServerToClientMessage::RegistrationFailure {
+                        reason: "Name already taken".to_string(),
+                    }),
+                );
+                return;
+            }
+
             // Newly inserted
             self.active_users.insert(src_id, name.to_string());
             // Send Registration Success message
@@ -141,6 +152,10 @@ impl RustBustersServer {
                 _ => "".to_string(),
             };
             db_manager.insert(DbMessage::new(src_id, dest_id, message_content));
+            let db_messages = db_manager
+                .get_all()
+                .expect("Something failed during db_manager.get_all()");
+            InternalChannelsManager::send_server_messages(self.id, db_messages);
         }
     }
 }
