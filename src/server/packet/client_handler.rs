@@ -7,7 +7,7 @@ use uuid::Uuid;
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
 
-use crate::db::DbMessage;
+use crate::server::db::DbMessage;
 
 impl RustBustersServer {
     /// Handle the user registration

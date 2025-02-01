@@ -1,4 +1,4 @@
-use crate::db::DbMessage;
+use crate::server::db::DbMessage;
 use common_utils::Stats;
 use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;

@@ -4,13 +4,21 @@ use common_utils::{
     HostCommand, HostEvent, HostMessage, MessageBody, MessageContent, ServerToClientMessage,
 };
 use crossbeam_channel::Sender;
-use log::warn;
+use log::{error, info, warn};
 use tiny_http::Server;
 use url::Host;
 use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
 impl RustBustersServer {
+    pub(crate) fn send_to_sc(&mut self, event: HostEvent) {
+        if self.controller_send.send(event).is_ok() {
+            info!("Server {} - Sent NodeEvent to SC", self.id);
+        } else {
+            error!("Server {} - Error in sending event to SC", self.id);
+        }
+    }
+
     pub(crate) fn handle_command(&mut self, command: HostCommand) {
         match command {
             HostCommand::SendRandomMessage(dest_id) => {

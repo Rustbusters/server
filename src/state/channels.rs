@@ -7,7 +7,7 @@ use wg_2024::network::NodeId;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
-use crate::db::DbMessage;
+use crate::server::db::DbMessage;
 use crate::utils::message::{InternalMessage, ServerMessages, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 

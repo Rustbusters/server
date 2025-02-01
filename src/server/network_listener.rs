@@ -1,4 +1,4 @@
-use crate::db::{self, DbManager};
+use crate::server::db::{self, DbManager};
 use crate::utils::message::WebSocketMessage;
 use crate::utils::traits::{Runnable, Service};
 use crate::{
@@ -160,14 +160,6 @@ impl RustBustersServer {
                     thread::yield_now(); // Give other threads CPU time
                 }
             }
-        }
-    }
-
-    pub(crate) fn send_to_sc(&mut self, event: HostEvent) {
-        if self.controller_send.send(event).is_ok() {
-            info!("Server {} - Sent NodeEvent to SC", self.id);
-        } else {
-            error!("Server {} - Error in sending event to SC", self.id);
         }
     }
 
