@@ -1,5 +1,5 @@
 use crate::server::db::DbMessage;
-use common_utils::Stats;
+use common_utils::{Stats, User};
 use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;
 
@@ -17,10 +17,11 @@ pub enum WebSocketMessage {
 pub enum InternalMessage {
     Stats(Stats),
     ServerMessages(ServerMessages),
+    ActiveUsers(ActiveUsers),
 }
 
 /// Server Messages
-/// This message is sent from the Network Server to the WebSocket Server for some specific server info.
+/// Wrapper for the users' messages on a specific server
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerMessages {
     pub(crate) server_id: NodeId,
@@ -32,6 +33,23 @@ impl ServerMessages {
         Self {
             server_id,
             messages,
+        }
+    }
+}
+
+/// Active Users
+/// Wrapper for the active user on a specific server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActiveUsers {
+    pub(crate) server_id: NodeId,
+    pub(crate) active_users: Vec<User>,
+}
+
+impl ActiveUsers {
+    pub(crate) fn new(server_id: NodeId, active_users: Vec<User>) -> Self {
+        Self {
+            server_id,
+            active_users,
         }
     }
 }

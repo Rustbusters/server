@@ -37,6 +37,13 @@ impl RustBustersServer {
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
 
+            let active_users: Vec<User> = self
+                .active_users
+                .iter()
+                .map(|(id, name)| User::new(id.clone(), name.to_string()))
+                .collect();
+            InternalChannelsManager::send_active_users(self.id, active_users);
+
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
             other_users.iter().filter(|(&id, _)| id != src_id).for_each(
@@ -80,6 +87,12 @@ impl RustBustersServer {
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::UnregisterSuccess),
             );
+            let active_users: Vec<User> = self
+                .active_users
+                .iter()
+                .map(|(id, name)| User::new(id.clone(), name.to_string()))
+                .collect();
+            InternalChannelsManager::send_active_users(self.id, active_users);
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
@@ -114,9 +127,10 @@ impl RustBustersServer {
         self.send_message(
             src_id,
             HostMessage::FromServer(ServerToClientMessage::ActiveUsersList {
-                users: active_users,
+                users: active_users.clone(),
             }),
         );
+        InternalChannelsManager::send_active_users(self.id, active_users);
     }
 
     /// Handle the private message

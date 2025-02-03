@@ -2,12 +2,14 @@ use common_utils::message;
 use serde::Deserialize;
 use serde::Serialize;
 use std::time::{Duration, Instant};
+use tungstenite::handshake::server;
 use wg_2024::config::Server;
 use wg_2024::network::NodeId;
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
 use crate::server::db::DbMessage;
+use crate::utils::message::ActiveUsers;
 use crate::utils::message::{InternalMessage, ServerMessages, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
@@ -59,10 +61,20 @@ impl InternalChannelsManager {
         let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         let conn = connections
             .get(&server_id)
-            .expect("No connection found while sending stats");
+            .expect("No connection found while sending server messages");
         let server_message = ServerMessages::new(server_id, messages);
         conn.sender
             .send(InternalMessage::ServerMessages(server_message));
+    }
+
+    pub fn send_active_users(server_id: NodeId, active_users: Vec<User>) {
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
+        let conn = connections
+            .get(&server_id)
+            .expect("Not connection found while sending active users");
+        let active_users_message = ActiveUsers::new(server_id, active_users);
+        conn.sender
+            .send(InternalMessage::ActiveUsers(active_users_message));
     }
 
     pub fn receive_and_forward_message(ws_stream: &mut WebSocket<TcpStream>) {
@@ -70,10 +82,8 @@ impl InternalChannelsManager {
         for (server_id, conn) in connections.iter() {
             // println!("Cycling on INTERNAL_CHANNELS");
             while let Ok(message) = conn.receiver.try_recv() {
-                // println!("Trying to receive on Server {server_id}");
                 match message {
                     InternalMessage::Stats(stats) => {
-                        // println!("Received Stats on Server {server_id}");
                         let ws_message = format!(
                             "{{\"server_id\":{server_id},\"stats\":{}}}",
                             serde_json::to_string(&stats).expect("Should be serializable")
@@ -89,7 +99,16 @@ impl InternalChannelsManager {
                             serde_json::to_string(&messages.messages)
                                 .expect("Should be serializable")
                         );
-                        println!("Sending messages to websocket client: {ws_message}");
+                        ws_stream.write(Message::Text(ws_message));
+                        ws_stream.flush();
+                    }
+                    InternalMessage::ActiveUsers(active_users) => {
+                        let ws_message = format!(
+                            "{{\"server_id\":{},\"active_users\":{}}}",
+                            active_users.server_id,
+                            serde_json::to_string(&active_users.active_users)
+                                .expect("Should be serializable")
+                        );
                         ws_stream.write(Message::Text(ws_message));
                         ws_stream.flush();
                     }
