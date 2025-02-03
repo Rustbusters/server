@@ -1,3 +1,6 @@
+use std::thread;
+use std::time::Duration;
+
 use crate::{RustBustersServer, StatsManager};
 use common_utils::Stats;
 use common_utils::{
@@ -64,6 +67,13 @@ impl RustBustersServer {
                 self.packet_send.remove(&sender_id);
                 self.launch_network_discovery();
                 warn!("Server {}: Sender removed", self.id);
+            }
+            HostCommand::Stop => {
+                // Sending stop command to RustbusterServerController
+                println!("Stopping server");
+                self.server_controller_sender.send(HostCommand::Stop);
+                thread::sleep(Duration::from_millis(200));
+                self.has_stopped = true;
             }
             _ => {}
         }

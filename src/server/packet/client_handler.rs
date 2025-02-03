@@ -35,12 +35,8 @@ impl RustBustersServer {
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
 
-            let active_users: Vec<User> = self
-                .active_users
-                .iter()
-                .map(|(id, name)| User::new(id.clone(), name.to_string()))
-                .collect();
-            InternalChannelsManager::send_active_users(self.id, active_users);
+            // Send active users to Internal Channels for retransmission to WebSoket client
+            self.send_active_users();
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
@@ -81,12 +77,9 @@ impl RustBustersServer {
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::UnregisterSuccess),
             );
-            let active_users: Vec<User> = self
-                .active_users
-                .iter()
-                .map(|(id, name)| User::new(id.clone(), name.to_string()))
-                .collect();
-            InternalChannelsManager::send_active_users(self.id, active_users);
+
+            // Send active users to Internal Channels for retransmission to WebSoket client
+            self.send_active_users();
 
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
@@ -113,18 +106,15 @@ impl RustBustersServer {
     /// Send the list of active users to the requester
     pub(crate) fn handle_request_active_users(&mut self, src_id: NodeId) {
         // Send the list of active users
-        let active_users: Vec<User> = self
-            .active_users
-            .iter()
-            .map(|(id, name)| User::new(id.clone(), name.to_string()))
-            .collect();
         self.send_network_message(
             src_id,
             HostMessage::FromServer(ServerToClientMessage::ActiveUsersList {
-                users: active_users.clone(),
+                users: self.get_active_users(),
             }),
         );
-        InternalChannelsManager::send_active_users(self.id, active_users);
+
+        // Send active users to Internal Channels for retransmission to WebSoket client
+        self.send_active_users();
     }
 
     /// Handle the private message

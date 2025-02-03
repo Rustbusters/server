@@ -32,6 +32,7 @@ pub struct RustBustersServer {
     pub(crate) packet_send: HashMap<NodeId, Sender<Packet>>,
     pub(crate) packet_recv: Receiver<Packet>,
     pub(crate) ws_receiver: Receiver<WebSocketMessage>, // receiver for the websocket server
+    pub(crate) server_controller_sender: Sender<HostCommand>,
 
     pub(crate) known_nodes: HashMap<NodeId, NodeType>,
     pub(crate) topology: HashMap<NodeId, Vec<NodeId>>,
@@ -51,6 +52,9 @@ pub struct RustBustersServer {
 
     // Database manager
     pub(crate) db_manager: Result<DbManager, rusqlite::Error>, // manages the internal server's database
+
+    // Termination condition
+    pub(crate) has_stopped: bool,
 }
 
 impl Runnable for RustBustersServer {
@@ -81,6 +85,7 @@ impl RustBustersServer {
         controller_recv: Receiver<HostCommand>,
         packet_send: HashMap<NodeId, Sender<Packet>>,
         packet_recv: Receiver<Packet>,
+        server_controller_sender: Sender<HostCommand>,
         discovery_interval: Option<Duration>,
     ) -> Self {
         let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(30));
@@ -104,6 +109,7 @@ impl RustBustersServer {
             packet_send,
             packet_recv,
             ws_receiver,
+            server_controller_sender,
             known_nodes: HashMap::new(),
             topology: HashMap::new(),
             flood_id_counter: random_number,
@@ -114,12 +120,17 @@ impl RustBustersServer {
             last_discovery: Instant::now(),
             discovery_interval,
             db_manager: DbManager::new(id, db_name),
+            has_stopped: false,
         }
     }
 
     fn launch_network_listener(&mut self) {
         // Listen for incoming messages
         loop {
+            if (self.has_stopped) {
+                break;
+            }
+
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
                 info!("Server {} - Discovering network", self.id);
                 self.launch_network_discovery();
@@ -180,11 +191,7 @@ impl RustBustersServer {
     }
 
     pub(crate) fn send_active_users(&self) {
-        let active_users: Vec<User> = self
-            .active_users
-            .iter()
-            .map(|(id, name)| User::new(id.clone(), name.to_string()))
-            .collect();
+        let active_users = self.get_active_users();
         InternalChannelsManager::send_active_users(self.id, active_users);
     }
 
@@ -195,5 +202,12 @@ impl RustBustersServer {
             WebSocketMessage::GetActiveUsers => self.send_active_users(),
             _ => {}
         }
+    }
+
+    pub(crate) fn get_active_users(&self) -> Vec<User> {
+        self.active_users
+            .iter()
+            .map(|(id, name)| User::new(id.clone(), name.to_string()))
+            .collect()
     }
 }

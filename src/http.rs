@@ -18,10 +18,10 @@ pub struct HttpServer {
 
 impl Runnable for HttpServer {
     fn run(self) -> Option<JoinHandle<()>> {
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             self.start();
         });
-        None
+        Some(handle)
     }
 }
 

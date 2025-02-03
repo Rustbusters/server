@@ -1,4 +1,3 @@
-pub mod controller;
 pub mod network_listener;
 pub mod sc_commands;
 
