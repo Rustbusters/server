@@ -22,7 +22,7 @@ impl RustBustersServer {
     pub(crate) fn handle_command(&mut self, command: HostCommand) {
         match command {
             HostCommand::SendRandomMessage(dest_id) => {
-                self.send_message(
+                self.send_network_message(
                     dest_id,
                     HostMessage::FromServer(ServerToClientMessage::PrivateMessage {
                         sender_id: self.id,

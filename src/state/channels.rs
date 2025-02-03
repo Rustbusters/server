@@ -57,7 +57,7 @@ impl InternalChannelsManager {
         conn.sender.send(InternalMessage::Stats(stats));
     }
 
-    pub fn send_server_messages(server_id: NodeId, messages: Vec<DbMessage>) {
+    pub fn send_messages(server_id: NodeId, messages: Vec<DbMessage>) {
         let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         let conn = connections
             .get(&server_id)
@@ -80,7 +80,6 @@ impl InternalChannelsManager {
     pub fn receive_and_forward_message(ws_stream: &mut WebSocket<TcpStream>) {
         let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         for (server_id, conn) in connections.iter() {
-            // println!("Cycling on INTERNAL_CHANNELS");
             while let Ok(message) = conn.receiver.try_recv() {
                 match message {
                     InternalMessage::Stats(stats) => {
@@ -92,7 +91,6 @@ impl InternalChannelsManager {
                         ws_stream.flush();
                     }
                     InternalMessage::ServerMessages(messages) => {
-                        // println!("Received ServerMessages on Server {server_id}");
                         let ws_message = format!(
                             "{{\"server_id\":{},\"messages\":{}}}",
                             messages.server_id,
@@ -133,13 +131,31 @@ static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketMessage>>>> =
 pub struct WSChannelsManager;
 
 impl WSChannelsManager {
-    pub fn get_messages(server_id: NodeId) {
+    pub fn get_server_stats(server_id: NodeId) {
+        // Send message to ws_channel
+        let ws_channels = WS_CHANNELS.lock().unwrap();
+        let channel = ws_channels
+            .get(&server_id)
+            .expect("No channel found while retrieving stats");
+        channel.send(WebSocketMessage::GetStats);
+    }
+
+    pub fn get_server_messages(server_id: NodeId) {
         // Send message to ws_channel
         let ws_channels = WS_CHANNELS.lock().unwrap();
         let channel = ws_channels
             .get(&server_id)
             .expect("No channel found while retrieving messages");
-        channel.send(WebSocketMessage::GetServerMessages(server_id));
+        channel.send(WebSocketMessage::GetMessages);
+    }
+
+    pub fn get_server_active_users(server_id: NodeId) {
+        // Send message to ws_channel
+        let ws_channels = WS_CHANNELS.lock().unwrap();
+        let channel = ws_channels
+            .get(&server_id)
+            .expect("No channel found while retrieving messages");
+        channel.send(WebSocketMessage::GetActiveUsers);
     }
 
     pub fn add_channel(server_id: NodeId) -> Receiver<WebSocketMessage> {

@@ -74,19 +74,69 @@ impl HttpServer {
             (Method::Get, path) if path.starts_with("/api/servers") => {
                 let parts: Vec<&str> = url.split('/').collect();
 
-                // Check if the URL matches the pattern "/api/servers/:server_id"
-                if parts.len() == 4 && parts[1] == "api" && parts[2] == "servers" {
-                    let server_id = parts[3].parse::<NodeId>().unwrap(); // Extract server_id
+                // Check the URL
+                if parts.len() == 5 && parts[1] == "api" && parts[2] == "servers" {
+                    let server_id = parts[4].parse::<NodeId>().unwrap(); // Extract server_id
 
-                    // Fetch server details based on server_id
-                    let _ = WSChannelsManager::get_messages(server_id);
-                    let json_response =
-                        json!({ "status": "success", "message": "Waiting for messages..." })
-                            .to_string();
+                    if parts[3] == "messages" {
+                        // URL matches the pattern "/api/servers/messages/:server_id"
+                        // Fetch server details based on server_id
+                        WSChannelsManager::get_server_messages(server_id);
+                        let json_response =
+                            json!({ "status": "success", "message": "Waiting for messages..." })
+                                .to_string();
 
-                    Response::from_string(json_response)
-                        .with_header(Header::from_str("Content-Type: application/json").unwrap())
-                        .with_header(Header::from_str("Access-Control-Allow-Origin: *").unwrap())
+                        Response::from_string(json_response)
+                            .with_header(
+                                Header::from_str("Content-Type: application/json").unwrap(),
+                            )
+                            .with_header(
+                                Header::from_str("Access-Control-Allow-Origin: *").unwrap(),
+                            )
+                    } else if parts[3] == "stats" {
+                        // URL matches the pattern "/api/servers/stats/:server_id"
+                        // Fetch server details based on server_id
+                        WSChannelsManager::get_server_stats(server_id);
+
+                        let json_response =
+                            json!({ "status": "success", "message": "Waiting for stats..." })
+                                .to_string();
+
+                        Response::from_string(json_response)
+                            .with_header(
+                                Header::from_str("Content-Type: application/json").unwrap(),
+                            )
+                            .with_header(
+                                Header::from_str("Access-Control-Allow-Origin: *").unwrap(),
+                            )
+                    } else if parts[3] == "users" {
+                        // URL matches the pattern "/api/servers/users/:server_id"
+                        // Fetch server details based on server_id
+                        WSChannelsManager::get_server_active_users(server_id);
+                        let json_response =
+                            json!({ "status": "success", "message": "Waiting for active users..." })
+                                .to_string();
+
+                        Response::from_string(json_response)
+                            .with_header(
+                                Header::from_str("Content-Type: application/json").unwrap(),
+                            )
+                            .with_header(
+                                Header::from_str("Access-Control-Allow-Origin: *").unwrap(),
+                            )
+                    } else {
+                        // URL doesn't match anything of the above
+                        let json_response =
+                            json!({ "status": "failure", "message": "Wrong url provided" })
+                                .to_string();
+                        Response::from_string(json_response)
+                            .with_header(
+                                Header::from_str("Content-Type: application/json").unwrap(),
+                            )
+                            .with_header(
+                                Header::from_str("Access-Control-Allow-Origin: *").unwrap(),
+                            )
+                    }
                 } else {
                     let servers = InternalChannelsManager::get_servers();
                     // Serialize the servers to JSON

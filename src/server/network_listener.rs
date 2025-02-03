@@ -163,24 +163,36 @@ impl RustBustersServer {
         }
     }
 
-    fn send_stats(&self) {
+    pub(crate) fn send_stats(&self) {
         let stats = StatsManager::get_stats(self.id);
         InternalChannelsManager::send_stats(self.id, stats);
     }
 
+    pub(crate) fn send_messages(&self) {
+        if let Ok(db_manager) = &self.db_manager {
+            // Retrieve messages from server's database
+            if let Ok(db_messages) = db_manager.get_all() {
+                info!("[DB-{}] {db_messages:?}", self.id);
+                // Send through the internal network server -> websocket server messages
+                InternalChannelsManager::send_messages(self.id, db_messages);
+            }
+        }
+    }
+
+    pub(crate) fn send_active_users(&self) {
+        let active_users: Vec<User> = self
+            .active_users
+            .iter()
+            .map(|(id, name)| User::new(id.clone(), name.to_string()))
+            .collect();
+        InternalChannelsManager::send_active_users(self.id, active_users);
+    }
+
     fn handle_ws_message(&self, message: WebSocketMessage) {
         match message {
-            WebSocketMessage::GetServerMessages(server_id) => {
-                if let Ok(db_manager) = &self.db_manager {
-                    // Retrieve messages from server's database
-                    if let Ok(db_messages) = db_manager.get_all() {
-                        // println!("[DB-{}] {db_messages:?}", self.id);
-                        info!("[DB-{}] {db_messages:?}", self.id);
-                        // Send through the internal network server -> websocket server messages
-                        InternalChannelsManager::send_server_messages(server_id, db_messages);
-                    }
-                }
-            }
+            WebSocketMessage::GetStats => self.send_stats(),
+            WebSocketMessage::GetMessages => self.send_messages(),
+            WebSocketMessage::GetActiveUsers => self.send_active_users(),
             _ => {}
         }
     }

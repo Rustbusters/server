@@ -9,7 +9,9 @@ use wg_2024::network::NodeId;
 /// This message is sent as a request from the HTTP server to the single Server channel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WebSocketMessage {
-    GetServerMessages(NodeId),
+    GetStats,
+    GetMessages,
+    GetActiveUsers,
 }
 
 /// Internal Server Messages

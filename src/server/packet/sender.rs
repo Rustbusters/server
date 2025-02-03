@@ -13,7 +13,7 @@ use std::collections::HashSet;
 use crate::RustBustersServer;
 
 impl RustBustersServer {
-    pub(crate) fn send_message(&mut self, destination_id: NodeId, message: HostMessage) {
+    pub(crate) fn send_network_message(&mut self, destination_id: NodeId, message: HostMessage) {
         // Find route to destination
         if let Some(route) = self.find_route(destination_id) {
             // Disassemble the message

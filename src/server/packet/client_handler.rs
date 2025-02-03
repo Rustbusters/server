@@ -14,12 +14,11 @@ impl RustBustersServer {
     ///
     /// Insert the user id in the active_users map and send the corresponding message back
     pub(crate) fn handle_register_user(&mut self, src_id: NodeId, name: &str) {
-        // println!("\nServer {} - Received RegisterUser {name}", self.id);
         // Verify the user presence in the hashset
         if !self.active_users.contains_key(&src_id) {
             // Name already taken
             if self.active_users.values().any(|n| n == name) {
-                self.send_message(
+                self.send_network_message(
                     src_id,
                     HostMessage::FromServer(ServerToClientMessage::RegistrationFailure {
                         reason: "Name already taken".to_string(),
@@ -31,8 +30,7 @@ impl RustBustersServer {
             // Newly inserted
             self.active_users.insert(src_id, name.to_string());
             // Send Registration Success message
-            // println!("\nServer {} - Sending RegistrationSuccess {name}", self.id);
-            self.send_message(
+            self.send_network_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
@@ -48,11 +46,7 @@ impl RustBustersServer {
             let other_users = self.active_users.clone();
             other_users.iter().filter(|(&id, _)| id != src_id).for_each(
                 |(&other_id, other_name)| {
-                    // println!(
-                    //     "\nServer {} - Sending NewUserRegistered to Client {}-{}",
-                    //     self.id, other_id, other_name
-                    // );
-                    self.send_message(
+                    self.send_network_message(
                         other_id,
                         HostMessage::FromServer(ServerToClientMessage::NewUserRegistered {
                             id: src_id,
@@ -65,7 +59,7 @@ impl RustBustersServer {
             // Already exists
             // Send Registration Failure message
 
-            self.send_message(
+            self.send_network_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationFailure {
                     reason: "You are already registered".to_string(),
@@ -83,7 +77,7 @@ impl RustBustersServer {
             self.active_users.remove(&src_id);
 
             // Send Unregistration Success message
-            self.send_message(
+            self.send_network_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::UnregisterSuccess),
             );
@@ -97,7 +91,7 @@ impl RustBustersServer {
             // Cloning because of borrow checker issues
             let other_users = self.active_users.clone();
             other_users.iter().for_each(|(&other_id, other_name)| {
-                self.send_message(
+                self.send_network_message(
                     other_id,
                     HostMessage::FromServer(ServerToClientMessage::UserUnregistered { id: src_id }),
                 );
@@ -105,7 +99,7 @@ impl RustBustersServer {
         } else {
             // Already unregistered
             // Send Unregsiteration Failure message
-            self.send_message(
+            self.send_network_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::UnregisterFailure {
                     reason: "You are already unregistered".to_string(),
@@ -124,7 +118,7 @@ impl RustBustersServer {
             .iter()
             .map(|(id, name)| User::new(id.clone(), name.to_string()))
             .collect();
-        self.send_message(
+        self.send_network_message(
             src_id,
             HostMessage::FromServer(ServerToClientMessage::ActiveUsersList {
                 users: active_users.clone(),
@@ -144,14 +138,14 @@ impl RustBustersServer {
     ) {
         // Check if the recipient is an active user
         if !self.active_users.contains_key(&dest_id) {
-            self.send_message(
+            self.send_network_message(
                 dest_id,
                 HostMessage::FromServer(ServerToClientMessage::UserNotFound { user_id: dest_id }),
             );
             return;
         }
         // Send the message to the recipient
-        self.send_message(
+        self.send_network_message(
             dest_id,
             HostMessage::FromServer(ServerToClientMessage::PrivateMessage {
                 sender_id: src_id,
@@ -166,10 +160,7 @@ impl RustBustersServer {
                 _ => "".to_string(),
             };
             db_manager.insert(DbMessage::new(src_id, dest_id, message_content));
-            let db_messages = db_manager
-                .get_all()
-                .expect("Something failed during db_manager.get_all()");
-            InternalChannelsManager::send_server_messages(self.id, db_messages);
+            self.send_messages();
         }
     }
 }
