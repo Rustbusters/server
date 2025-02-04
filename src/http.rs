@@ -1,5 +1,7 @@
+use crate::controller::InternalCommand;
 use crate::utils::traits::{Runnable, Service};
 use crate::{InternalChannelsManager, WSChannelsManager};
+use crossbeam_channel::Receiver;
 use log::info;
 use serde_json::json;
 use std::fs;
@@ -14,6 +16,7 @@ pub struct HttpServer {
     address: String,
     routes: Vec<String>,
     public_path: String,
+    receiver: Receiver<InternalCommand>,
 }
 
 impl Runnable for HttpServer {
@@ -27,6 +30,10 @@ impl Runnable for HttpServer {
 
 impl Service for HttpServer {
     fn start(self) {
+        info!(
+            "[SERVER-HTTP] Visit http://{} for the server UI",
+            self.address
+        );
         println!(
             "[SERVER-HTTP] Visit http://{} for the server UI",
             self.address
@@ -38,12 +45,22 @@ impl Service for HttpServer {
                     eprintln!("Error handling request: {e}");
                 }
             }
+
+            if let Ok(internal_command) = self.receiver.try_recv() {
+                match internal_command {
+                    InternalCommand::Stop => {
+                        info!("[SERVER-HTTP] Terminating HTTP server");
+                        break;
+                    }
+                    _ => {}
+                }
+            }
         }
     }
 }
 
 impl HttpServer {
-    pub fn new(address: String, public_path: String) -> Self {
+    pub fn new(address: String, public_path: String, receiver: Receiver<InternalCommand>) -> Self {
         let mut routes = Vec::new();
         routes.push(String::from("dashboard"));
         // routes.push(String::from("servers"));
@@ -52,6 +69,7 @@ impl HttpServer {
             address,
             routes,
             public_path,
+            receiver,
         }
     }
 

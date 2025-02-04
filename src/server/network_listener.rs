@@ -172,6 +172,8 @@ impl RustBustersServer {
                 }
             }
         }
+
+        info!("[SERVER-{}] Terminating RustBustersServer thread", self.id);
     }
 
     pub(crate) fn send_stats(&self) {

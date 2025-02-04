@@ -1,6 +1,8 @@
+use crate::controller::InternalCommand;
 use crate::utils::traits::{Runnable, Service};
-use crate::{InternalChannelsManager, StatsManager};
+use crate::{InternalChannelsManager, StatsManager, WSChannelsManager};
 
+use crossbeam_channel::Receiver;
 use log::{info, warn};
 use rusqlite::Connection;
 use std::net::{TcpListener, TcpStream};
@@ -18,16 +20,17 @@ use uuid::Uuid;
 use tungstenite::{Error, Message, WebSocket};
 
 pub struct WebSocketServer {
-    pub(crate) address: String,
+    address: String,
+    receiver: Receiver<InternalCommand>,
 }
 
 impl Runnable for WebSocketServer {
     fn run(self) -> Option<JoinHandle<()>> {
         // Listens for incoming websocket connections
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             self.start();
         });
-        None
+        Some(handle)
     }
 }
 
@@ -56,6 +59,18 @@ impl Service for WebSocketServer {
                     }
                 }
 
+                if let Ok(internal_command) = self.receiver.try_recv() {
+                    match internal_command {
+                        InternalCommand::Stop => {
+                            info!("[SERVER-WSS] Terminating WebSocket server");
+                            WSChannelsManager::remove_channels();
+                            InternalChannelsManager::remove_channels();
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+
                 if InternalChannelsManager::is_empty() {
                     break;
                 }
@@ -67,8 +82,8 @@ impl Service for WebSocketServer {
 }
 
 impl WebSocketServer {
-    pub fn new(address: String) -> Self {
-        Self { address }
+    pub fn new(address: String, receiver: Receiver<InternalCommand>) -> Self {
+        Self { address, receiver }
     }
 
     fn handle_connection(mut ws_stream: WebSocket<TcpStream>) {
@@ -84,5 +99,6 @@ impl WebSocketServer {
                 break;
             }
         }
+        info!("[SERVER-WSS] Connection closed");
     }
 }

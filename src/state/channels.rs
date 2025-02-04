@@ -14,6 +14,7 @@ use crate::utils::message::{InternalMessage, ServerMessages, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
+use log::info;
 use std::collections::HashMap;
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, LazyLock, Mutex};
@@ -23,6 +24,7 @@ use tungstenite::{Message, WebSocket};
 static INTERNAL_CHANNELS: LazyLock<Mutex<HashMap<NodeId, InternalChannel>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+#[derive(Debug)]
 struct InternalChannel {
     pub sender: Sender<InternalMessage>,
     pub receiver: Receiver<InternalMessage>,
@@ -122,6 +124,11 @@ impl InternalChannelsManager {
             .entry(server_id)
             .or_insert_with(InternalChannel::new);
     }
+
+    pub fn remove_channels() {
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
+        connections.clear();
+    }
 }
 
 // WebSocket Message Channels
@@ -161,7 +168,13 @@ impl WSChannelsManager {
     pub fn add_channel(server_id: NodeId) -> Receiver<WebSocketMessage> {
         let (sender, receiver) = unbounded::<WebSocketMessage>();
         let mut ws_channels = WS_CHANNELS.lock().unwrap();
-        ws_channels.entry(server_id).or_insert(sender);
+        ws_channels.insert(server_id, sender);
         receiver
+    }
+
+    pub fn remove_channels() {
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
+        connections.clear();
+        info!("HASHMAP: {connections:?}");
     }
 }
