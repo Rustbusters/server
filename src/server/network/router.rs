@@ -28,7 +28,7 @@ impl RustBustersServer {
                 }
                 path.reverse();
                 info!(
-                    "Node {}: Found route to {}: {:?}",
+                    "Server {}: Found route to {}: {:?}",
                     self.id, destination_id, path
                 );
                 return Some(path);

@@ -24,9 +24,11 @@ impl RustBustersServer {
             self.session_id_counter += 1;
             let session_id = self.session_id_counter;
 
-            // For the current session_id insert the current Instant to calculate the duration
-            self.sessions_start_instants
-                .insert(session_id, Instant::now());
+            // For the current session_id insert the session info: (destination node, instant, message)
+            self.sessions_info.insert(
+                session_id,
+                (destination_id, Instant::now(), message.clone()),
+            );
 
             // Send the fragments along the route
             for fragment in fragments {
@@ -62,13 +64,6 @@ impl RustBustersServer {
                         };
                     }
 
-                    // Send MsgFragment to Simulation Controller
-                    self.send_to_sc(HostEvent::PacketSent(PacketHeader {
-                        session_id,
-                        pack_type: PacketTypeHeader::MsgFragment,
-                        routing_header: packet.routing_header.clone(),
-                    }));
-
                     // Update pending fragments that are waiting to be acked
                     self.pending_sent
                         .entry((session_id, fragment_index))
@@ -77,7 +72,7 @@ impl RustBustersServer {
                     // Update stats
                     StatsManager::inc_message_fragments_sent(self.id);
 
-                    // Construct and send packet to simulation controller
+                    // Send MsgFragment to simulation controller
                     let _ = self.send_to_sc(HostEvent::PacketSent(PacketHeader {
                         routing_header,
                         session_id,

@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{RustBustersServer, StatsManager};
 use common_utils::{HostEvent, HostMessage};
-use log::info;
+use log::{info, warn};
 
 impl RustBustersServer {
     pub(crate) fn handle_ack(&mut self, session_id: u64, fragment_index: u64) {
@@ -18,21 +18,20 @@ impl RustBustersServer {
             .is_empty()
         {
             // Sending host message sent to simulation controller
-            let (host_message, dest_id) = self
-                .sessions_messages
-                .remove(&session_id)
-                .expect("No session message found for specified session_id");
-            let start = self
-                .sessions_start_instants
-                .remove(&session_id)
-                .expect("No session instant found for specified session_id");
-            let delay = Instant::now() - start;
-            self.send_to_sc(HostEvent::HostMessageSent(dest_id, host_message, delay));
+            if let Some((dest_id, start, host_message)) = self.sessions_info.remove(&session_id) {
+                let delay = Instant::now() - start;
+                self.send_to_sc(HostEvent::HostMessageSent(dest_id, host_message, delay));
 
-            info!(
-                "Server {}: All fragments of session {} acked",
-                self.id, session_id
-            );
+                info!(
+                    "Server {}: All fragments of session {} acked",
+                    self.id, session_id
+                );
+            } else {
+                warn!(
+                    "Server {}: Cannot find session_info for specified session_id {}",
+                    self.id, session_id
+                );
+            }
         }
     }
 }
