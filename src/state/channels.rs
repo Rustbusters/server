@@ -1,3 +1,4 @@
+use crate::state::Stats;
 use common_utils::message;
 use serde::Deserialize;
 use serde::Serialize;
@@ -11,7 +12,7 @@ use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 use crate::server::db::DbMessage;
 use crate::utils::message::ActiveUsers;
 use crate::utils::message::{InternalMessage, ServerMessages, WebSocketMessage};
-use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
+use common_utils::{HostMessage, ServerToClientMessage, User};
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
 use log::info;

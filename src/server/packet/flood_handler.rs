@@ -1,5 +1,6 @@
 use crate::{RustBustersServer, StatsManager};
-use common_utils::HostEvent::ControllerShortcut;
+use common_utils::HostEvent;
+use common_utils::{PacketHeader, PacketTypeHeader};
 use log::info;
 use log::warn;
 use wg_2024::network::SourceRoutingHeader;
@@ -69,19 +70,30 @@ impl RustBustersServer {
                 "Server {}: Sending FloodResponse to initiator {}, next hop {}",
                 self.id, flood_request.initiator_id, response_packet.routing_header.hops[1]
             );
+
             if let Err(err) = sender.send(response_packet.clone()) {
                 warn!(
                     "Server {}: Error sending FloodResponse to initiator {}: {}",
                     self.id, flood_request.initiator_id, err
                 );
-                self.send_to_sc(ControllerShortcut(response_packet))
+                self.send_to_sc(HostEvent::ControllerShortcut(response_packet.clone()))
             }
+
+            // Update stats
+            StatsManager::inc_flood_responses_sent(self.id);
         } else {
             warn!(
                 "Server {}: Cannot send FloodResponse to initiator {}",
                 self.id, flood_request.initiator_id
             );
-            self.send_to_sc(ControllerShortcut(response_packet))
+            self.send_to_sc(HostEvent::ControllerShortcut(response_packet.clone()))
         }
+
+        // Send FloodResponse packet to Simulation Controller
+        self.send_to_sc(HostEvent::PacketSent(PacketHeader {
+            session_id,
+            pack_type: PacketTypeHeader::FloodResponse,
+            routing_header: response_packet.routing_header.clone(),
+        }));
     }
 }

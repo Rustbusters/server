@@ -1,3 +1,5 @@
+use common_utils::HostEvent;
+use common_utils::{PacketHeader, PacketTypeHeader};
 use log::{info, warn};
 use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::NodeType::Server;
@@ -28,7 +30,7 @@ impl RustBustersServer {
             session_id: 0,
         };
 
-        for (&neighbor_id, neighbor_sender) in &self.packet_send {
+        for (neighbor_id, neighbor_sender) in self.packet_send.clone() {
             info!(
                 "Server {}: Sending FloodRequest to {} with flood_id {}",
                 self.id, neighbor_id, flood_id
@@ -38,6 +40,13 @@ impl RustBustersServer {
                     "Server {}: Unable to send FloodRequest to {}: {}",
                     self.id, neighbor_id, err
                 );
+            } else {
+                // Send FloodRequest packet to Simulation Controller
+                self.send_to_sc(HostEvent::PacketSent(PacketHeader {
+                    session_id: 0,
+                    pack_type: PacketTypeHeader::FloodRequest,
+                    routing_header: packet.routing_header.clone(),
+                }));
             }
         }
     }

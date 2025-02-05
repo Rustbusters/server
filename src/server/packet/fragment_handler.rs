@@ -1,7 +1,10 @@
 use crate::RustBustersServer;
 use crate::StatsManager;
-use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
-use common_utils::{ClientToServerMessage, HostMessage, MessageBody, ServerToClientMessage, User};
+use common_utils::HostEvent;
+use common_utils::{
+    ClientToServerMessage, HostMessage, MessageBody, PacketHeader, PacketTypeHeader,
+    ServerToClientMessage, User,
+};
 use log::{info, warn};
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
@@ -44,12 +47,9 @@ impl RustBustersServer {
                         self.id, msg, session_id
                     );
                     StatsManager::inc_messages_received(self.id);
-                    if let Err(err) = self.controller_send.send(HostMessageReceived(msg)) {
-                        warn!(
-                            "Server {}: Unable to send MessageReceived(...) to controller: {}",
-                            self.id, err
-                        );
-                    }
+
+                    // Save the reassambled message in the sessions_init HashMap for future send to the simulation controller
+                    self.sessions_messages.insert(session_id, msg);
                 }
                 Err(err) => {
                     warn!("Server {} failed to reassemble fragments: {}", self.id, err);
@@ -81,26 +81,33 @@ impl RustBustersServer {
         if let Some(sender) = self.packet_send.get(&next_hop) {
             if let Err(err) = sender.send(ack_packet.clone()) {
                 warn!(
-                    "Node {}: Error sending Ack for fragment {} to {}: {}",
+                    "Server {}: Error sending Ack for fragment {} to {}: {}",
                     self.id, fragment_index, next_hop, err
                 );
-                self.send_to_sc(ControllerShortcut(ack_packet));
-                info!("Node {}: Sending ack through SC", self.id);
+                self.send_to_sc(HostEvent::ControllerShortcut(ack_packet.clone()));
+                info!("Server {}: Sending ack through SC", self.id);
             } else {
-                // Increment the number of sent Acks
+                // Update stats: increment the number of sent Acks
                 StatsManager::inc_acks_sent(self.id);
                 info!(
-                    "Node {}: Sent Ack for fragment {} to {}",
+                    "Server {}: Sent Ack for fragment {} to {}",
                     self.id, fragment_index, next_hop
                 );
             }
         } else {
             warn!(
-                "Node {}: Cannot send Ack for fragment {} to {}",
+                "Server {}: Cannot send Ack for fragment {} to {}",
                 self.id, fragment_index, next_hop
             );
-            self.send_to_sc(ControllerShortcut(ack_packet))
+            self.send_to_sc(HostEvent::ControllerShortcut(ack_packet.clone()))
         }
+
+        // Send Ack to Simulation Controller
+        self.send_to_sc(HostEvent::PacketSent(PacketHeader {
+            session_id,
+            pack_type: PacketTypeHeader::Ack,
+            routing_header: ack_packet.routing_header,
+        }));
     }
 
     /// Insert the fragment in the pending_received map at index fragment_index.

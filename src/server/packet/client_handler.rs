@@ -1,5 +1,5 @@
 use crate::{InternalChannelsManager, RustBustersServer};
-use common_utils::HostEvent::{ControllerShortcut, HostMessageReceived};
+use common_utils::HostEvent::ControllerShortcut;
 use common_utils::{
     ClientToServerMessage, HostMessage, MessageBody, MessageContent, ServerToClientMessage, User,
 };

@@ -1,4 +1,5 @@
 use crate::server::db::{self, DbManager};
+use crate::state::Stats;
 use crate::utils::message::WebSocketMessage;
 use crate::utils::traits::{Runnable, Service};
 use crate::{
@@ -20,7 +21,7 @@ use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 use wg_2024::packet::{Nack, NackType};
 
-use common_utils::{HostMessage, ServerToClientMessage, Stats, User};
+use common_utils::{HostMessage, ServerToClientMessage, User};
 
 use std::collections::HashSet;
 
@@ -42,6 +43,8 @@ pub struct RustBustersServer {
 
     pub(crate) pending_sent: HashMap<(u64, u64), Packet>, // (session_id, fragment_index) -> packet
     pub(crate) pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>, // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
+    pub(crate) sessions_init: HashMap<u64, Instant>,
+    pub(crate) sessions_messages: HashMap<u64, HostMessage>,
 
     // Map for storing the active user sessions
     pub(crate) active_users: HashMap<NodeId, String>,
@@ -116,6 +119,8 @@ impl RustBustersServer {
             session_id_counter: 0,
             pending_sent: HashMap::new(),
             pending_received: HashMap::new(),
+            sessions_init: HashMap::new(),
+            sessions_messages: HashMap::new(),
             active_users: HashMap::new(),
             last_discovery: Instant::now(),
             discovery_interval,

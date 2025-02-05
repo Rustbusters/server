@@ -19,7 +19,7 @@ impl RustBustersServer {
                     "Server {}: Received FloodRequest with flood_id {}",
                     self.id, flood_request.flood_id
                 );
-                StatsManager::inc_fragments_received(self.id);
+                StatsManager::inc_flood_requests_received(self.id);
                 self.handle_flood_request(flood_request, packet.session_id);
             }
             PacketType::FloodResponse(flood_response) => {
@@ -27,7 +27,7 @@ impl RustBustersServer {
                     "Server {}: Received FloodResponse with flood_id {}",
                     self.id, flood_response.flood_id
                 );
-                StatsManager::inc_fragments_received(self.id);
+                StatsManager::inc_flood_responses_received(self.id);
                 self.handle_flood_response(flood_response);
             }
             PacketType::MsgFragment(fragment) => {
@@ -36,7 +36,7 @@ impl RustBustersServer {
                     "Server {}: Received fragment {} of session {}",
                     self.id, fragment.fragment_index, packet.session_id
                 );
-                StatsManager::inc_fragments_received(self.id);
+                StatsManager::inc_message_fragments_received(self.id);
                 self.handle_fragment(fragment, packet.session_id, packet.routing_header);
             }
             PacketType::Ack(ack) => {

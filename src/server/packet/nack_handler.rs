@@ -1,4 +1,6 @@
 use crate::{RustBustersServer, StatsManager};
+use common_utils::HostEvent;
+use common_utils::{PacketHeader, PacketTypeHeader};
 use log::{info, warn};
 use wg_2024::packet::NackType;
 use wg_2024::packet::NackType::Dropped;
@@ -25,7 +27,14 @@ impl RustBustersServer {
                                 self.id, fragment_index, err
                             );
                         } else {
-                            StatsManager::inc_fragments_sent(self.id);
+                            StatsManager::inc_message_fragments_sent(self.id);
+
+                            // Send MsgFragment to Simulation Controller
+                            self.send_to_sc(HostEvent::PacketSent(PacketHeader {
+                                session_id,
+                                pack_type: PacketTypeHeader::MsgFragment,
+                                routing_header: packet.routing_header.clone(),
+                            }));
                         }
                     }
                 } else {

@@ -1,4 +1,5 @@
 use crate::controller::InternalCommand;
+use crate::state::Stats;
 use crate::utils::traits::{Runnable, Service};
 use crate::{InternalChannelsManager, StatsManager, WSChannelsManager};
 
@@ -13,7 +14,6 @@ use url::Url;
 use wg_2024::config::Server;
 use wg_2024::network::NodeId;
 
-use common_utils::Stats;
 use std::collections::HashMap;
 use uuid::Uuid;
 

@@ -1,4 +1,7 @@
+use std::time::Instant;
+
 use crate::{RustBustersServer, StatsManager};
+use common_utils::{HostEvent, HostMessage};
 use log::info;
 
 impl RustBustersServer {
@@ -14,8 +17,20 @@ impl RustBustersServer {
             .collect::<Vec<_>>()
             .is_empty()
         {
+            // Sending host message sent to simulation controller
+            let host_message = self
+                .sessions_messages
+                .remove(&session_id)
+                .expect("No session message found for specified session_id");
+            let start = self
+                .sessions_init
+                .remove(&session_id)
+                .expect("No session instant found for specified session_id");
+            let delay = Instant::now() - start;
+            self.send_to_sc(HostEvent::HostMessageSent(host_message, delay));
+
             info!(
-                "Node {}: All fragments of session {} acked",
+                "Server {}: All fragments of session {} acked",
                 self.id, session_id
             );
         }

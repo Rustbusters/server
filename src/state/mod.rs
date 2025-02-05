@@ -3,4 +3,4 @@ mod stats;
 
 pub use channels::InternalChannelsManager;
 pub use channels::WSChannelsManager;
-pub use stats::StatsManager;
+pub use stats::{Stats, StatsManager};
