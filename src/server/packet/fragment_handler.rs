@@ -48,8 +48,16 @@ impl RustBustersServer {
                     );
                     StatsManager::inc_messages_received(self.id);
 
-                    // Save the reassambled message in the sessions_init HashMap for future send to the simulation controller
-                    self.sessions_messages.insert(session_id, msg);
+                    // Save the reassambled message in the sessions_start_instants HashMap for future send to the simulation controller
+                    self.sessions_messages.insert(
+                        session_id,
+                        (
+                            msg,
+                            source_routing_header
+                                .destination()
+                                .expect("No destination found"),
+                        ),
+                    );
                 }
                 Err(err) => {
                     warn!("Server {} failed to reassemble fragments: {}", self.id, err);

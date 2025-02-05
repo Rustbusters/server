@@ -18,16 +18,16 @@ impl RustBustersServer {
             .is_empty()
         {
             // Sending host message sent to simulation controller
-            let host_message = self
+            let (host_message, dest_id) = self
                 .sessions_messages
                 .remove(&session_id)
                 .expect("No session message found for specified session_id");
             let start = self
-                .sessions_init
+                .sessions_start_instants
                 .remove(&session_id)
                 .expect("No session instant found for specified session_id");
             let delay = Instant::now() - start;
-            self.send_to_sc(HostEvent::HostMessageSent(host_message, delay));
+            self.send_to_sc(HostEvent::HostMessageSent(dest_id, host_message, delay));
 
             info!(
                 "Server {}: All fragments of session {} acked",

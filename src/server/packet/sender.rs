@@ -25,7 +25,8 @@ impl RustBustersServer {
             let session_id = self.session_id_counter;
 
             // For the current session_id insert the current Instant to calculate the duration
-            self.sessions_init.insert(session_id, Instant::now());
+            self.sessions_start_instants
+                .insert(session_id, Instant::now());
 
             // Send the fragments along the route
             for fragment in fragments {
@@ -77,14 +78,11 @@ impl RustBustersServer {
                     StatsManager::inc_message_fragments_sent(self.id);
 
                     // Construct and send packet to simulation controller
-                    let packet_header = PacketHeader {
+                    let _ = self.send_to_sc(HostEvent::PacketSent(PacketHeader {
                         routing_header,
                         session_id,
                         pack_type: PacketTypeHeader::MsgFragment,
-                    };
-                    let _ = self
-                        .controller_send
-                        .send(HostEvent::PacketSent(packet_header));
+                    }));
                 }
             }
 

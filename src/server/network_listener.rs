@@ -43,8 +43,8 @@ pub struct RustBustersServer {
 
     pub(crate) pending_sent: HashMap<(u64, u64), Packet>, // (session_id, fragment_index) -> packet
     pub(crate) pending_received: HashMap<u64, (Vec<Option<Fragment>>, u64)>, // session_id -> (fragments, num_fragments) (u8 is the number of fragments received) (for reassembly)
-    pub(crate) sessions_init: HashMap<u64, Instant>,
-    pub(crate) sessions_messages: HashMap<u64, HostMessage>,
+    pub(crate) sessions_start_instants: HashMap<u64, Instant>, // session_id -> instant
+    pub(crate) sessions_messages: HashMap<u64, (HostMessage, NodeId)>, // session_id -> (message, destination)
 
     // Map for storing the active user sessions
     pub(crate) active_users: HashMap<NodeId, String>,
@@ -119,7 +119,7 @@ impl RustBustersServer {
             session_id_counter: 0,
             pending_sent: HashMap::new(),
             pending_received: HashMap::new(),
-            sessions_init: HashMap::new(),
+            sessions_start_instants: HashMap::new(),
             sessions_messages: HashMap::new(),
             active_users: HashMap::new(),
             last_discovery: Instant::now(),
