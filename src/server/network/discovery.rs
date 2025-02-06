@@ -5,7 +5,7 @@ use wg_2024::network::SourceRoutingHeader;
 use wg_2024::packet::NodeType::Server;
 use wg_2024::packet::{FloodRequest, Packet, PacketType};
 
-use crate::RustBustersServer;
+use crate::{RustBustersServer, StatsManager};
 
 impl RustBustersServer {
     pub fn launch_network_discovery(&mut self) {
@@ -41,6 +41,9 @@ impl RustBustersServer {
                     self.id, neighbor_id, err
                 );
             } else {
+                // Update stats
+                StatsManager::inc_flood_requests_sent(self.id);
+
                 // Send FloodRequest packet to Simulation Controller
                 self.send_to_sc(HostEvent::PacketSent(PacketHeader {
                     session_id: 0,
