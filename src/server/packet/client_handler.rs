@@ -126,10 +126,19 @@ impl RustBustersServer {
         dest_id: NodeId,
         message: &MessageBody,
     ) {
-        // Check if the recipient is an active user
-        if !self.active_users.contains_key(&src_id) || !self.active_users.contains_key(&dest_id) {
+        // Check if the sender is an active user
+        if !self.active_users.contains_key(&src_id) {
             self.send_network_message(
-                dest_id,
+                src_id,
+                HostMessage::FromServer(ServerToClientMessage::UserNotFound { user_id: src_id }),
+            );
+            return;
+        }
+
+        // Check if the recipient is an active user
+        if !self.active_users.contains_key(&dest_id) {
+            self.send_network_message(
+                src_id,
                 HostMessage::FromServer(ServerToClientMessage::UserNotFound { user_id: dest_id }),
             );
             return;
