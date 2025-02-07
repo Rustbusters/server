@@ -11,7 +11,7 @@ use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
 use crate::server::db::DbMessage;
 use crate::utils::message::ActiveUsers;
-use crate::utils::message::{InternalMessage, ServerMessage, ServerMessages, WebSocketMessage};
+use crate::utils::message::{InternalMessage, ServerMessage, ServerMessages, WebSocketRequest};
 use common_utils::{HostMessage, ServerToClientMessage, User};
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
@@ -38,86 +38,87 @@ impl InternalChannel {
     }
 }
 
+// Struct for managing internal channels between the WebSocket Server and the various Network Servers
 pub struct InternalChannelsManager;
 
 impl InternalChannelsManager {
     pub fn get_servers() -> Vec<NodeId> {
-        let connections = INTERNAL_CHANNELS.lock().unwrap();
-        let servers = connections.keys().copied().collect();
+        let channels = INTERNAL_CHANNELS.lock().unwrap();
+        let servers = channels.keys().copied().collect();
         servers
     }
 
     pub fn is_empty() -> bool {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        connections.is_empty()
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        channels.is_empty()
     }
 
     pub fn send_stats(server_id: NodeId, stats: Stats) {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        let conn = connections
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        let conn = channels
             .get(&server_id)
             .expect("No connection found while sending stats");
-        conn.sender.send(InternalMessage::Stats(stats));
+        conn.sender.send(InternalMessage::SendStats(stats));
     }
 
     pub fn send_message(server_id: NodeId, message: DbMessage) {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        let conn = connections
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        let conn = channels
             .get(&server_id)
             .expect("No connection found while sending server messages");
         let server_message = ServerMessage::new(server_id, message);
         conn.sender
-            .send(InternalMessage::ServerMessage(server_message));
+            .send(InternalMessage::SendServerMessage(server_message));
     }
 
     pub fn send_messages(server_id: NodeId, messages: Vec<DbMessage>) {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        let conn = connections
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        let conn = channels
             .get(&server_id)
             .expect("No connection found while sending server messages");
         let server_message = ServerMessages::new(server_id, messages);
         conn.sender
-            .send(InternalMessage::ServerMessages(server_message));
+            .send(InternalMessage::SendServerMessages(server_message));
     }
 
     pub fn send_active_users(server_id: NodeId, active_users: Vec<User>) {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        let conn = connections
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        let conn = channels
             .get(&server_id)
             .expect("Not connection found while sending active users");
         let active_users_message = ActiveUsers::new(server_id, active_users);
         conn.sender
-            .send(InternalMessage::ActiveUsers(active_users_message));
+            .send(InternalMessage::SendActiveUsers(active_users_message));
     }
 
     pub fn receive_and_forward_message(ws_stream: &mut WebSocket<TcpStream>) {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        for (&server_id, conn) in connections.iter() {
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        for (&server_id, conn) in channels.iter() {
             while let Ok(message) = conn.receiver.try_recv() {
-                let ws_message = Self::get_ws_message(server_id, message);
+                let ws_message = Self::handle_internal_message(server_id, message);
                 ws_stream.write(Message::Text(ws_message));
                 ws_stream.flush();
             }
         }
     }
 
-    fn get_ws_message(server_id: NodeId, message: InternalMessage) -> String {
-        let mut ws_message = String::from("Easter egg");
+    fn handle_internal_message(server_id: NodeId, message: InternalMessage) -> String {
+        let mut ws_message = String::from("Easter egg 🐣: quack 🦆");
         match message {
-            InternalMessage::Stats(stats) => {
+            InternalMessage::SendStats(stats) => {
                 ws_message = format!(
                     "{{\"serverId\":{server_id},\"stats\":{}}}",
                     serde_json::to_string(&stats).expect("Should be serializable")
                 );
             }
-            InternalMessage::ServerMessage(server_message) => {
+            InternalMessage::SendServerMessage(server_message) => {
                 ws_message = format!(
                     "{{\"serverId\":{},\"newMessage\":{}}}",
                     server_message.server_id,
                     serde_json::to_string(&server_message.message).expect("Should be serializable")
                 );
             }
-            InternalMessage::ServerMessages(server_messages) => {
+            InternalMessage::SendServerMessages(server_messages) => {
                 ws_message = format!(
                     "{{\"serverId\":{},\"messages\":{}}}",
                     server_messages.server_id,
@@ -125,7 +126,7 @@ impl InternalChannelsManager {
                         .expect("Should be serializable")
                 );
             }
-            InternalMessage::ActiveUsers(active_users) => {
+            InternalMessage::SendActiveUsers(active_users) => {
                 ws_message = format!(
                     "{{\"serverId\":{},\"activeUsers\":{}}}",
                     active_users.server_id,
@@ -139,62 +140,63 @@ impl InternalChannelsManager {
     }
 
     pub fn add_channel(server_id: NodeId) {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        connections
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        channels
             .entry(server_id)
             .or_insert_with(InternalChannel::new);
     }
 
     pub fn remove_channels() {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        connections.clear();
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        channels.clear();
     }
 }
 
 // WebSocket Message Channels
-static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketMessage>>>> =
+static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketRequest>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub struct WSChannelsManager;
 
 impl WSChannelsManager {
     pub fn get_server_stats(server_id: NodeId) {
-        // Send message to ws_channel
+        // Send message to Internal channel of the specified Network Server
         let ws_channels = WS_CHANNELS.lock().unwrap();
         let channel = ws_channels
             .get(&server_id)
             .expect("No channel found while retrieving stats");
-        channel.send(WebSocketMessage::GetStats);
+        channel.send(WebSocketRequest::GetStats);
     }
 
     pub fn get_server_messages(server_id: NodeId) {
-        // Send message to ws_channel
+        // Send message to Internal channel of the specified Network Server
         let ws_channels = WS_CHANNELS.lock().unwrap();
         let channel = ws_channels
             .get(&server_id)
             .expect("No channel found while retrieving messages");
-        channel.send(WebSocketMessage::GetMessages);
+        channel.send(WebSocketRequest::GetMessages);
     }
 
     pub fn get_server_active_users(server_id: NodeId) {
-        // Send message to ws_channel
+        // Send message to Internal channel of the specified Network Server
         let ws_channels = WS_CHANNELS.lock().unwrap();
         let channel = ws_channels
             .get(&server_id)
             .expect("No channel found while retrieving messages");
-        channel.send(WebSocketMessage::GetActiveUsers);
+        channel.send(WebSocketRequest::GetActiveUsers);
     }
 
-    pub fn add_channel(server_id: NodeId) -> Receiver<WebSocketMessage> {
-        let (sender, receiver) = unbounded::<WebSocketMessage>();
+    pub fn add_channel(server_id: NodeId) -> Receiver<WebSocketRequest> {
+        // Adds a channels channel for the specified server_id
+        let (sender, receiver) = unbounded::<WebSocketRequest>();
         let mut ws_channels = WS_CHANNELS.lock().unwrap();
         ws_channels.insert(server_id, sender);
         receiver
     }
 
     pub fn remove_channels() {
-        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        connections.clear();
-        info!("HASHMAP: {connections:?}");
+        // Removes all the channels, can be use in case of a Stop command from the simulation controller
+        let mut channels = INTERNAL_CHANNELS.lock().unwrap();
+        channels.clear();
     }
 }

@@ -1,6 +1,6 @@
 use crate::server::db::{self, DbManager};
 use crate::state::Stats;
-use crate::utils::message::WebSocketMessage;
+use crate::utils::message::WebSocketRequest;
 use crate::utils::traits::{Runnable, Service};
 use crate::{
     InternalChannelsManager, RustBustersServerController, StatsManager, WSChannelsManager,
@@ -34,7 +34,7 @@ pub struct RustBustersServer {
     pub(crate) controller_recv: Receiver<HostCommand>,
     pub(crate) packet_send: HashMap<NodeId, Sender<Packet>>,
     pub(crate) packet_recv: Receiver<Packet>,
-    pub(crate) ws_receiver: Receiver<WebSocketMessage>, // receiver for the websocket server
+    pub(crate) ws_receiver: Receiver<WebSocketRequest>, // receiver for the websocket server
     pub(crate) server_controller_sender: Sender<HostCommand>,
 
     pub(crate) known_nodes: HashMap<NodeId, NodeType>,
@@ -156,7 +156,7 @@ impl RustBustersServer {
                 // Handle UI requests
                 recv(self.ws_receiver) -> ws_message => {
                     if let Ok(message) = ws_message {
-                        self.handle_ws_message(message);
+                        self.handle_ws_request(message);
                     } else {
                         error!("Server {} - Error in websocket message receipt", self.id);
                     }
@@ -179,6 +179,15 @@ impl RustBustersServer {
         }
 
         info!("[SERVER-{}] Terminating RustBustersServer thread", self.id);
+    }
+
+    fn handle_ws_request(&self, message: WebSocketRequest) {
+        match message {
+            WebSocketRequest::GetStats => self.send_stats(),
+            WebSocketRequest::GetMessages => self.send_db_messages(),
+            WebSocketRequest::GetActiveUsers => self.send_active_users(),
+            _ => {}
+        }
     }
 
     pub(crate) fn send_stats(&self) {
@@ -208,15 +217,6 @@ impl RustBustersServer {
     pub(crate) fn send_active_users(&self) {
         let active_users = self.get_active_users();
         InternalChannelsManager::send_active_users(self.id, active_users);
-    }
-
-    fn handle_ws_message(&self, message: WebSocketMessage) {
-        match message {
-            WebSocketMessage::GetStats => self.send_stats(),
-            WebSocketMessage::GetMessages => self.send_db_messages(),
-            WebSocketMessage::GetActiveUsers => self.send_active_users(),
-            _ => {}
-        }
     }
 
     pub(crate) fn get_active_users(&self) -> Vec<User> {

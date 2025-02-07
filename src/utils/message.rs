@@ -7,21 +7,21 @@ use wg_2024::network::NodeId;
 // This file specifies the types of messages exchanged by the Network Listener and the WebSocket Server.
 
 /// WebSocket Messages
-/// This message is sent as a request from the HTTP server to the single Server channel.
+/// This message is sent as a request from the HTTP server to the WebSocket Server through a crossbeam channel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum WebSocketMessage {
+pub enum WebSocketRequest {
     GetStats,
     GetMessages,
     GetActiveUsers,
 }
 
 /// Internal Server Messages
-/// This message is exchanged between the Network Server and the WebSocket Server.
+/// This message is exchanged between the Network Server and the WebSocket Server through a crossbeam channel.
 pub enum InternalMessage {
-    Stats(Stats),
-    ServerMessage(ServerMessage),
-    ServerMessages(ServerMessages),
-    ActiveUsers(ActiveUsers),
+    SendStats(Stats),
+    SendServerMessage(ServerMessage),
+    SendServerMessages(ServerMessages),
+    SendActiveUsers(ActiveUsers),
 }
 
 /// Server Message

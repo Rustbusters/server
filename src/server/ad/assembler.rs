@@ -1,5 +1,5 @@
-use common_utils::HostMessage;
 use crate::RustBustersServer;
+use common_utils::HostMessage;
 
 impl RustBustersServer {
     pub(crate) fn reassemble_fragments(&mut self, session_id: u64) -> Result<HostMessage, String> {
@@ -7,18 +7,19 @@ impl RustBustersServer {
             None => Err(format!("No fragments for session {}", session_id)),
             Some(fragments) => {
                 let concatenated: Result<Vec<u8>, &str> =
-                    fragments.0
+                    fragments
+                        .0
                         .into_iter()
                         .try_fold(Vec::new(), |mut acc, f| match f {
-                            Some(frammento) => {
-                                acc.extend_from_slice(&frammento.data);
+                            Some(fragment) => {
+                                acc.extend_from_slice(&fragment.data);
                                 Ok(acc)
                             }
-                            None => Err("Frammento mancante"),
+                            None => Err("Missing fragment"),
                         });
-                
+
                 if let Ok(byte_array) = concatenated {
-                    // Trova la lunghezza effettiva della stringa (fino al primo zero)
+                    // Find the actual string length (till the first 0)
                     let len = byte_array
                         .iter()
                         .position(|&x| x == 0)

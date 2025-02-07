@@ -69,7 +69,7 @@ impl RustBustersServerController {
 
     fn start(mut self) {
         // Run http server with UI
-        if let Some(http_handle) = Self::run_http(
+        if let Some(http_handle) = Self::run_http_server(
             self.http_server_address,
             self.http_public_path,
             self.http_receiver,
@@ -98,7 +98,7 @@ impl RustBustersServerController {
         }
     }
 
-    fn run_http(
+    fn run_http_server(
         http_server_address: String,
         http_public_path: String,
         http_receiver: Receiver<InternalCommand>,
