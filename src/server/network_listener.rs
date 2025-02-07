@@ -25,6 +25,8 @@ use common_utils::{HostMessage, ServerToClientMessage, User};
 
 use std::collections::HashSet;
 
+use super::db::DbMessage;
+
 pub struct RustBustersServer {
     // Basic configuration
     pub(crate) id: NodeId,

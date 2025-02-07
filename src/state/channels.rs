@@ -87,7 +87,7 @@ impl InternalChannelsManager {
                 match message {
                     InternalMessage::Stats(stats) => {
                         let ws_message = format!(
-                            "{{\"server_id\":{server_id},\"stats\":{}}}",
+                            "{{\"serverId\":{server_id},\"stats\":{}}}",
                             serde_json::to_string(&stats).expect("Should be serializable")
                         );
                         ws_stream.write(Message::Text(ws_message));
@@ -95,7 +95,7 @@ impl InternalChannelsManager {
                     }
                     InternalMessage::ServerMessages(messages) => {
                         let ws_message = format!(
-                            "{{\"server_id\":{},\"messages\":{}}}",
+                            "{{\"serverId\":{},\"messages\":{}}}",
                             messages.server_id,
                             serde_json::to_string(&messages.messages)
                                 .expect("Should be serializable")
@@ -105,7 +105,7 @@ impl InternalChannelsManager {
                     }
                     InternalMessage::ActiveUsers(active_users) => {
                         let ws_message = format!(
-                            "{{\"server_id\":{},\"active_users\":{}}}",
+                            "{{\"serverId\":{},\"activeUsers\":{}}}",
                             active_users.server_id,
                             serde_json::to_string(&active_users.active_users)
                                 .expect("Should be serializable")
