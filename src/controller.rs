@@ -12,6 +12,7 @@ use std::{
 };
 use wg_2024::config::Server;
 
+// List of commands exchanged between the RustbustersServerController and the different services
 pub(crate) enum InternalCommand {
     Stop,
 }
