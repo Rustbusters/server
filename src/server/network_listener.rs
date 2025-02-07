@@ -186,7 +186,15 @@ impl RustBustersServer {
         InternalChannelsManager::send_stats(self.id, stats);
     }
 
-    pub(crate) fn send_messages(&self) {
+    pub(crate) fn send_db_message(&self, db_message: DbMessage) {
+        if let Ok(db_manager) = &self.db_manager {
+            info!("[DB-{}] {db_message:?}", self.id);
+            // Send through the internal network server -> websocket server messages
+            InternalChannelsManager::send_message(self.id, db_message);
+        }
+    }
+
+    pub(crate) fn send_db_messages(&self) {
         if let Ok(db_manager) = &self.db_manager {
             // Retrieve messages from server's database
             if let Ok(db_messages) = db_manager.get_all() {
@@ -205,7 +213,7 @@ impl RustBustersServer {
     fn handle_ws_message(&self, message: WebSocketMessage) {
         match message {
             WebSocketMessage::GetStats => self.send_stats(),
-            WebSocketMessage::GetMessages => self.send_messages(),
+            WebSocketMessage::GetMessages => self.send_db_messages(),
             WebSocketMessage::GetActiveUsers => self.send_active_users(),
             _ => {}
         }

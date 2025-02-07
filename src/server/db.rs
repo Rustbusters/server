@@ -60,12 +60,18 @@ impl DbManager {
     }
 
     /// Inserts a message into the database
-    pub fn insert(&self, message: DbMessage) -> Result<()> {
+    pub fn insert(
+        &self,
+        src_id: NodeId,
+        dest_id: NodeId,
+        message: String,
+    ) -> Result<DbMessage, rusqlite::Error> {
+        let db_message = DbMessage::new(src_id, dest_id, message);
         self.conn.execute(
             "INSERT INTO messages (id, src_id, dest_id, message, timestamp) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![message.id, message.src_id, message.dest_id, message.message, message.timestamp],
+            params![db_message.id, db_message.src_id, db_message.dest_id, db_message.message, db_message.timestamp],
         )?;
-        Ok(())
+        Ok(db_message)
     }
 
     /// Retrieves a message by its ID

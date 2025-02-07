@@ -35,7 +35,7 @@ impl RustBustersServer {
                 HostMessage::FromServer(ServerToClientMessage::RegistrationSuccess),
             );
 
-            // Send active users to Internal Channels for retransmission to WebSoket client
+            // Send active users to Internal Channels for retransmission to WebSoket Server and finally to the UI
             self.send_active_users();
 
             // Cloning because of borrow checker issues
@@ -54,7 +54,6 @@ impl RustBustersServer {
         } else {
             // Already exists
             // Send Registration Failure message
-
             self.send_network_message(
                 src_id,
                 HostMessage::FromServer(ServerToClientMessage::RegistrationFailure {
@@ -78,7 +77,7 @@ impl RustBustersServer {
                 HostMessage::FromServer(ServerToClientMessage::UnregisterSuccess),
             );
 
-            // Send active users to Internal Channels for retransmission to WebSoket client
+            // Send active users to Internal Channels for retransmission to WebSoket client and finally to the UI
             self.send_active_users();
 
             // Cloning because of borrow checker issues
@@ -153,13 +152,14 @@ impl RustBustersServer {
         );
         // Save message to local database
         if let Ok(db_manager) = &self.db_manager {
-            let message_content = match message.content.clone() {
+            let message_str = match message.content.clone() {
                 MessageContent::Text(text) => text,
                 MessageContent::Image(image) => image,
                 _ => "".to_string(),
             };
-            db_manager.insert(DbMessage::new(src_id, dest_id, message_content));
-            self.send_messages();
+            if let Ok(new_db_message) = db_manager.insert(src_id, dest_id, message_str) {
+                self.send_db_message(new_db_message);
+            }
         }
     }
 }

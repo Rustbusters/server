@@ -4,7 +4,7 @@ use common_utils::User;
 use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;
 
-// This file specifies the types of messages exchanged by some server components
+// This file specifies the types of messages exchanged by the Network Listener and the WebSocket Server.
 
 /// WebSocket Messages
 /// This message is sent as a request from the HTTP server to the single Server channel.
@@ -19,8 +19,23 @@ pub enum WebSocketMessage {
 /// This message is exchanged between the Network Server and the WebSocket Server.
 pub enum InternalMessage {
     Stats(Stats),
+    ServerMessage(ServerMessage),
     ServerMessages(ServerMessages),
     ActiveUsers(ActiveUsers),
+}
+
+/// Server Message
+/// Wrapper for the users' message on a specific server: this is used to update the users' message during the simulation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerMessage {
+    pub(crate) server_id: NodeId,
+    pub(crate) message: DbMessage,
+}
+
+impl ServerMessage {
+    pub fn new(server_id: NodeId, message: DbMessage) -> Self {
+        Self { server_id, message }
+    }
 }
 
 /// Server Messages

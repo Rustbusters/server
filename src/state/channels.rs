@@ -11,7 +11,7 @@ use wg_2024::packet::{Fragment, NodeType, Packet, PacketType};
 
 use crate::server::db::DbMessage;
 use crate::utils::message::ActiveUsers;
-use crate::utils::message::{InternalMessage, ServerMessages, WebSocketMessage};
+use crate::utils::message::{InternalMessage, ServerMessage, ServerMessages, WebSocketMessage};
 use common_utils::{HostMessage, ServerToClientMessage, User};
 
 use crossbeam_channel::{select_biased, unbounded, Receiver, RecvTimeoutError, Sender};
@@ -60,6 +60,16 @@ impl InternalChannelsManager {
         conn.sender.send(InternalMessage::Stats(stats));
     }
 
+    pub fn send_message(server_id: NodeId, message: DbMessage) {
+        let mut connections = INTERNAL_CHANNELS.lock().unwrap();
+        let conn = connections
+            .get(&server_id)
+            .expect("No connection found while sending server messages");
+        let server_message = ServerMessage::new(server_id, message);
+        conn.sender
+            .send(InternalMessage::ServerMessage(server_message));
+    }
+
     pub fn send_messages(server_id: NodeId, messages: Vec<DbMessage>) {
         let mut connections = INTERNAL_CHANNELS.lock().unwrap();
         let conn = connections
@@ -82,41 +92,50 @@ impl InternalChannelsManager {
 
     pub fn receive_and_forward_message(ws_stream: &mut WebSocket<TcpStream>) {
         let mut connections = INTERNAL_CHANNELS.lock().unwrap();
-        for (server_id, conn) in connections.iter() {
+        for (&server_id, conn) in connections.iter() {
             while let Ok(message) = conn.receiver.try_recv() {
-                match message {
-                    InternalMessage::Stats(stats) => {
-                        let ws_message = format!(
-                            "{{\"serverId\":{server_id},\"stats\":{}}}",
-                            serde_json::to_string(&stats).expect("Should be serializable")
-                        );
-                        ws_stream.write(Message::Text(ws_message));
-                        ws_stream.flush();
-                    }
-                    InternalMessage::ServerMessages(messages) => {
-                        let ws_message = format!(
-                            "{{\"serverId\":{},\"messages\":{}}}",
-                            messages.server_id,
-                            serde_json::to_string(&messages.messages)
-                                .expect("Should be serializable")
-                        );
-                        ws_stream.write(Message::Text(ws_message));
-                        ws_stream.flush();
-                    }
-                    InternalMessage::ActiveUsers(active_users) => {
-                        let ws_message = format!(
-                            "{{\"serverId\":{},\"activeUsers\":{}}}",
-                            active_users.server_id,
-                            serde_json::to_string(&active_users.active_users)
-                                .expect("Should be serializable")
-                        );
-                        ws_stream.write(Message::Text(ws_message));
-                        ws_stream.flush();
-                    }
-                    _ => {}
-                }
+                let ws_message = Self::get_ws_message(server_id, message);
+                ws_stream.write(Message::Text(ws_message));
+                ws_stream.flush();
             }
         }
+    }
+
+    fn get_ws_message(server_id: NodeId, message: InternalMessage) -> String {
+        let mut ws_message = String::from("Easter egg");
+        match message {
+            InternalMessage::Stats(stats) => {
+                ws_message = format!(
+                    "{{\"serverId\":{server_id},\"stats\":{}}}",
+                    serde_json::to_string(&stats).expect("Should be serializable")
+                );
+            }
+            InternalMessage::ServerMessage(server_message) => {
+                ws_message = format!(
+                    "{{\"serverId\":{},\"newMessage\":{}}}",
+                    server_message.server_id,
+                    serde_json::to_string(&server_message.message).expect("Should be serializable")
+                );
+            }
+            InternalMessage::ServerMessages(server_messages) => {
+                ws_message = format!(
+                    "{{\"serverId\":{},\"messages\":{}}}",
+                    server_messages.server_id,
+                    serde_json::to_string(&server_messages.messages)
+                        .expect("Should be serializable")
+                );
+            }
+            InternalMessage::ActiveUsers(active_users) => {
+                ws_message = format!(
+                    "{{\"serverId\":{},\"activeUsers\":{}}}",
+                    active_users.server_id,
+                    serde_json::to_string(&active_users.active_users)
+                        .expect("Should be serializable")
+                );
+            }
+            _ => {}
+        }
+        ws_message
     }
 
     pub fn add_channel(server_id: NodeId) {
