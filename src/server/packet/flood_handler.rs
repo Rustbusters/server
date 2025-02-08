@@ -28,8 +28,8 @@ impl RustBustersServer {
             }
         }
 
-        info!("Node {}: Updated topology: {:?}", self.id, self.topology);
-        info!("Node {}: Known nodes: {:?}", self.id, self.known_nodes);
+        info!("Server {}: Updated topology: {:?}", self.id, self.topology);
+        info!("Server {}: Known nodes: {:?}", self.id, self.known_nodes);
     }
 
     pub(crate) fn handle_flood_request(&mut self, flood_request: FloodRequest, session_id: u64) {

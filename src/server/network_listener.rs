@@ -92,7 +92,7 @@ impl RustBustersServer {
         server_controller_sender: Sender<HostCommand>,
         discovery_interval: Option<Duration>,
     ) -> Self {
-        let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(30));
+        let discovery_interval = discovery_interval.unwrap_or(Duration::from_secs(10));
         let db_name = format!("server_{}.db", id);
 
         // Init stats for server

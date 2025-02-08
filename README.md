@@ -52,4 +52,4 @@ Example:
 
 
 This is a simple diagram explaining the overall architecture:
-<img src="./assets/diagram.png" width="400px"/>
+<img src="./assets/diagram.png" />
