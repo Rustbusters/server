@@ -12,6 +12,20 @@ use log::{debug, info, warn};
 use wg_2024::packet::{Ack, FloodRequest, FloodResponse, Fragment, Packet, PacketType};
 
 impl RustBustersServer {
+    /// Handles an incoming packet and dispatches it to the appropriate handler based on its type.
+    ///
+    /// ### Parameters
+    /// - `packet: Packet` – The received packet containing a specific `PacketType`
+    ///   and associated metadata.
+    ///
+    /// ### Behavior
+    /// - Identifies the type of the received packet and processes it accordingly:
+    ///   - `FloodRequest`: Logs the event, updates statistics, and calls `handle_flood_request()`.
+    ///   - `FloodResponse`: Logs the event, updates statistics, and calls `handle_flood_response()`.
+    ///   - `MsgFragment`: Logs the event, updates statistics, and calls `handle_fragment()`
+    ///     to process message reassembly.
+    ///   - `Ack`: Logs the acknowledgment, updates statistics, and calls `handle_ack()`.
+    ///   - `Nack`: Logs the negative acknowledgment, updates statistics, and calls `handle_nack()`.
     pub(crate) fn handle_packet(&mut self, packet: Packet) {
         match packet.pack_type {
             PacketType::FloodRequest(flood_request) => {

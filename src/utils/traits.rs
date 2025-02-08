@@ -5,7 +5,7 @@ pub trait Runnable {
     fn run(self) -> Option<JoinHandle<()>>;
 }
 
-/// Specifies if it's a service
+/// Specifies a running service such as a WebSocket or HTTP server.
 pub(crate) trait Service {
     fn start(self);
 }

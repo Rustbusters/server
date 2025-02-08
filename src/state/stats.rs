@@ -8,6 +8,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 
 use serde::{Deserialize, Serialize};
 
+/// The `Stats` struct is responsible for saving server's statistics.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Stats {

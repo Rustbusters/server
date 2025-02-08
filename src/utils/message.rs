@@ -4,7 +4,7 @@ use common_utils::User;
 use serde::{Deserialize, Serialize};
 use wg_2024::network::NodeId;
 
-// This file specifies the types of messages exchanged by the Network Listener and the WebSocket Server.
+// This module defines the message types used for communication between the Network Listener and the WebSocket Server. These messages are exchanged via crossbeam channels to facilitate real-time updates during the simulation.
 
 /// WebSocket Messages
 /// This message is sent as a request from the HTTP server to the WebSocket Server through a crossbeam channel.

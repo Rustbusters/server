@@ -38,7 +38,7 @@ impl InternalChannel {
     }
 }
 
-// Struct for managing internal channels between the WebSocket Server and the various Network Servers
+/// The InternalChannelsManager is responsible for managing communication channels between the WebSocket server and multiple network servers. It facilitates message exchange, statistics updates, and user activity synchronization through internal messaging.
 pub struct InternalChannelsManager;
 
 impl InternalChannelsManager {
@@ -156,6 +156,7 @@ impl InternalChannelsManager {
 static WS_CHANNELS: LazyLock<Mutex<HashMap<NodeId, Sender<WebSocketRequest>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+/// The WSChannelsManager is responsible for handling communication channels between the WebSocket server and multiple network servers. It allows the servers to send statistics, messages, and active user lists.
 pub struct WSChannelsManager;
 
 impl WSChannelsManager {

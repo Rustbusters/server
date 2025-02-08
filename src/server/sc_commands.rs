@@ -14,7 +14,7 @@ use wg_2024::network::NodeId;
 use wg_2024::packet::Packet;
 
 impl RustBustersServer {
-    pub(crate) fn send_to_sc(&mut self, event: HostEvent) {
+    pub(crate) fn send_to_sc(&self, event: HostEvent) {
         if self.controller_send.send(event).is_ok() {
             info!("Server {} - Sent HostEvent to SC", self.id);
         } else {
@@ -22,6 +22,20 @@ impl RustBustersServer {
         }
     }
 
+    /// Handles various simulation controller commands received from the control interface.
+    ///
+    /// # Parameters
+    /// - `command: HostCommand` – The command to be processed, which could include actions like sending messages,
+    ///   initiating network discovery, adding/removing senders, or stopping the server.
+    ///
+    /// # Behavior
+    /// - Matches the `HostCommand` variant and performs the corresponding action:
+    ///   - **SendRandomMessage**: Sends a random private message to a specified destination node.
+    ///   - **DiscoverNetwork**: Initiates a network discovery process to learn about the network topology.
+    ///   - **AddSender**: Adds a sender to the `packet_send` map and triggers a network discovery.
+    ///   - **RemoveSender**: Removes a sender from the `packet_send` map and triggers a network discovery.
+    ///   - **Stop**: Stops the server, sends a stop command to the `RustbusterServerController`, and marks the server as stopped.
+    ///   - Other commands are ignored (default case).
     pub(crate) fn handle_command(&mut self, command: HostCommand) {
         match command {
             HostCommand::SendRandomMessage(dest_id) => {

@@ -4,6 +4,17 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use wg_2024::network::NodeId;
 
 impl RustBustersServer {
+    /// Finds the shortest path (number of edges) from the current server to the specified destination using Breadth-First Search (BFS).
+    ///
+    /// ### Parameters
+    /// - `destination_id`: The ID of the node to which a route is being searched.
+    ///
+    /// ### Returns
+    /// - `Some(Vec<NodeId>)`: A vector representing the shortest path from `self.id` to `destination_id`, if found.
+    /// - `None`: If no valid route exists.
+    ///
+    /// ### Algorithm
+    /// Uses BFS to explore the network graph and determine the shortest path.
     pub(crate) fn find_route(&self, destination_id: NodeId) -> Option<Vec<NodeId>> {
         // Simple BFS to find the shortest path
         let mut visited = HashSet::new();

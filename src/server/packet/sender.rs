@@ -15,6 +15,22 @@ use std::collections::HashSet;
 use crate::RustBustersServer;
 
 impl RustBustersServer {
+    /// Sends a network message to a specified destination by fragmenting and routing it through the network.
+    ///
+    /// ### Parameters
+    /// - `destination_id: NodeId` – The identifier of the destination node to send the message to.
+    /// - `message: HostMessage` – The message to be sent, which will be fragmented.
+    ///
+    /// ### Behavior
+    /// - Attempts to find a route to the destination node using `find_route()`.
+    /// - If a route is found:
+    ///   - The message is fragmented into smaller units using `disassemble_message()`.
+    ///   - A new session is created, and the session information (destination, timestamp, and message) is stored.
+    ///   - Each fragment is sent along the route in sequential hops, starting with the first hop.
+    ///   - Updates the `pending_sent` map to track the fragments that need acknowledgment.
+    ///   - Sends the packet to the next hop and handles potential sending errors by logging warnings.
+    ///   - Updates statistics to track the number of fragments sent and the total messages sent.
+    ///   - Sends an update to the Simulation Controller (SC) for each fragment sent.
     pub(crate) fn send_network_message(&mut self, destination_id: NodeId, message: HostMessage) {
         // Find route to destination
         if let Some(route) = self.find_route(destination_id) {

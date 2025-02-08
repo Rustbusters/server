@@ -8,6 +8,15 @@ use wg_2024::packet::{FloodRequest, Packet, PacketType};
 use crate::{RustBustersServer, StatsManager};
 
 impl RustBustersServer {
+    /// Initiates a network discovery process by broadcasting a `FloodRequest` to all known neighbors.
+    ///
+    /// ### Behavior
+    /// - Increments the internal `flood_id_counter` to generate a unique `flood_id` on every network discovery.
+    /// - Creates a `FloodRequest` packet containing:
+    ///   - `flood_id`: A unique identifier for the discovery attempt.
+    ///   - `initiator_id`: The ID of the current server.
+    ///   - `path_trace`: A vector tracking the discovery path, initialized with the current server.
+    /// - Sends the `FloodRequest` packet to all directly connected neighbors.
     pub fn launch_network_discovery(&mut self) {
         // Generate a unique flood_id
         self.flood_id_counter += 1;

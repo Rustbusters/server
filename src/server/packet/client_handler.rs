@@ -9,9 +9,11 @@ use wg_2024::packet::{Ack, Fragment, Packet, PacketType};
 use crate::server::db::DbMessage;
 
 impl RustBustersServer {
-    /// Handle the user registration
+    /// Handles user registration
     ///
-    /// Insert the user id in the active_users map and send the corresponding message back
+    /// ### Behavior
+    /// 1. Inserts the `src_id` in the `active_users` map and sends the corresponding message back.
+    /// 2. Notifies the other active users connected to the server.
     pub(crate) fn handle_register_user(&mut self, src_id: NodeId, name: &str) {
         // Verify the user presence in the hashset
         if !self.active_users.contains_key(&src_id) {
@@ -62,9 +64,11 @@ impl RustBustersServer {
         }
     }
 
-    /// Handle the user unregistration
+    /// Handles the user unregistration
     ///
-    /// Remove the user id from the active_users map and send the corresponding message back
+    /// ### Behavior
+    /// 1. Removes the `src_id` from the `active_users` map and sends the corresponding message back.
+    /// 2. Notifies the other active users connected to the server.
     pub(crate) fn handle_unregister_user(&mut self, src_id: NodeId) {
         // Verify the user presence in the hashset
         if self.active_users.contains_key(&src_id) {
@@ -99,9 +103,11 @@ impl RustBustersServer {
         }
     }
 
-    /// Handle the request for the list of active users
+    /// Handles request for the list of active users
     ///
-    /// Send the list of active users to the requester
+    /// ### Behavior
+    /// 1. Sends the list of active users to the requester.
+    /// 2. Sends the list of active users through the Internal Channels to the UI
     pub(crate) fn handle_request_active_users(&mut self, src_id: NodeId) {
         // Send the list of active users
         self.send_network_message(
@@ -111,13 +117,16 @@ impl RustBustersServer {
             }),
         );
 
-        // Send active users to Internal Channels for retransmission to WebSoket client
+        // Send active users to Internal Channels for retransmission to WebSoket Server
         self.send_active_users();
     }
 
-    /// Handle the private message
+    /// Handles private message receipt
     ///
-    /// Send the message to the recipient
+    /// ### Behavior
+    /// 1. Verifies if the `src_id` and `dest_id` are registered.
+    /// 2. Sends the message to the recipient.
+    /// 3. Save the received message to the local database via the `db_manager`.
     pub(crate) fn handle_send_private_message(
         &mut self,
         src_id: NodeId,
