@@ -42,7 +42,6 @@ impl RustBustersServer {
                             self.id, fragment_index, nack_type
                         );
                         self.topology.remove(&drone_id);
-                        self.launch_network_discovery();
                     }
                     NackType::DestinationIsDrone | NackType::UnexpectedRecipient(_) => {
                         warn!(

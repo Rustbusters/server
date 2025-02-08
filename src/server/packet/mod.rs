@@ -31,10 +31,6 @@ impl RustBustersServer {
                 self.handle_flood_response(flood_response);
             }
             PacketType::MsgFragment(fragment) => {
-                println!(
-                    "Server {}: Received fragment {} of session {}",
-                    self.id, fragment.fragment_index, packet.session_id
-                );
                 // Handle incoming message fragments
                 info!(
                     "Server {}: Received fragment {} of session {}",
