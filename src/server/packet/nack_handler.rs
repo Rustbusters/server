@@ -77,30 +77,32 @@ impl RustBustersServer {
                         if let Some(route) = self.find_route(dest_id) {
                             packet.routing_header.hops = route.clone();
                             packet.routing_header.hop_index = 1;
-
-                            // Resend the packet
-                            if let Some(sender) =
-                                self.packet_send.get(&packet.routing_header.hops[1])
-                            {
-                                if let Err(err) = sender.send(packet.clone()) {
-                                    warn!(
-                                        "Server {}: Unable to resend fragment {}: {}",
-                                        self.id, fragment_index, err
-                                    );
-                                } else {
-                                    StatsManager::inc_message_fragments_sent(self.id);
-
-                                    // Send MsgFragment to Simulation Controller
-                                    self.send_to_sc(HostEvent::PacketSent(PacketHeader {
-                                        session_id,
-                                        pack_type: PacketTypeHeader::MsgFragment,
-                                        routing_header: packet.routing_header.clone(),
-                                    }));
-                                }
-                            }
                         } else {
                             warn!("Server {}: Error in finding route", self.id);
                             self.launch_network_discovery();
+                            if let Some(route) = self.find_route(dest_id) {
+                                packet.routing_header.hops = route.clone();
+                                packet.routing_header.hop_index = 1;
+                            }
+                        }
+
+                        // Resend the packet
+                        if let Some(sender) = self.packet_send.get(&packet.routing_header.hops[1]) {
+                            if let Err(err) = sender.send(packet.clone()) {
+                                warn!(
+                                    "Server {}: Unable to resend fragment {}: {}",
+                                    self.id, fragment_index, err
+                                );
+                            } else {
+                                StatsManager::inc_message_fragments_sent(self.id);
+
+                                // Send MsgFragment to Simulation Controller
+                                self.send_to_sc(HostEvent::PacketSent(PacketHeader {
+                                    session_id,
+                                    pack_type: PacketTypeHeader::MsgFragment,
+                                    routing_header: packet.routing_header.clone(),
+                                }));
+                            }
                         }
                     }
                     NackType::DestinationIsDrone | NackType::UnexpectedRecipient(_) => {
