@@ -133,10 +133,6 @@ impl RustBustersServer {
     fn launch_network_listener(&mut self) {
         // Listen for incoming messages
         loop {
-            if (self.has_stopped) {
-                break;
-            }
-
             if (self.last_discovery.elapsed() >= self.discovery_interval) {
                 info!("Server {} - Discovering network", self.id);
                 self.launch_network_discovery();
@@ -144,6 +140,18 @@ impl RustBustersServer {
             }
 
             select_biased! {
+                // Handle Simulation Controller commands
+                recv(self.controller_recv) -> command => {
+                    if let Ok(cmd) = command {
+                        self.handle_command(cmd);
+                        if (self.has_stopped) { // If stop command was received previously
+                            break;
+                        }
+                    } else {
+                        error!("Server {} - Error in receiving command", self.id);
+                    }
+                }
+
                 // Handle network packets
                 recv(self.packet_recv) -> packet_res => {
                     if let Ok(mut packet) = packet_res {
@@ -160,15 +168,6 @@ impl RustBustersServer {
                         self.handle_ws_request(message);
                     } else {
                         error!("Server {} - Error in websocket message receipt", self.id);
-                    }
-                }
-
-                // Handle Simulation Controller commands
-                recv(self.controller_recv) -> command => {
-                    if let Ok(cmd) = command {
-                        self.handle_command(cmd);
-                    } else {
-                        error!("Server {} - Error in receiving command", self.id);
                     }
                 }
 

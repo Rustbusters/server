@@ -80,9 +80,9 @@ impl RustBustersServer {
             HostCommand::Stop => {
                 // Sending stop command to RustbusterServerController
                 println!("Stopping server");
+                self.has_stopped = true;
                 self.server_controller_sender.send(HostCommand::Stop);
                 thread::sleep(Duration::from_millis(200));
-                self.has_stopped = true;
             }
             _ => {}
         }
