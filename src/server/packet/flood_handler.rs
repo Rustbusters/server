@@ -18,13 +18,13 @@ impl RustBustersServer {
     /// ### Behavior
     /// 1. Iterates through `path_trace` in pairs of nodes (windows of size 2).
     /// 2. Extracts `from_id`, `to_id` (node IDs) and their respective types.
-    /// 3. Adds both nodes to the `known_nodes` map to track discovered nodes and their types.
+    /// 3. Adds both nodes to the `known_node_types` map to track discovered nodes and their types.
     /// 4. Updates `topology` by ensuring bidirectional connectivity between `from_id` and `to_id`.
     pub(crate) fn handle_flood_response(&mut self, flood_response: FloodResponse) {
         for window in flood_response.path_trace.windows(2) {
             if let [(from_id, from_type), (to_id, to_type)] = window {
-                self.known_nodes.insert(*from_id, *from_type);
-                self.known_nodes.insert(*to_id, *to_type);
+                self.known_node_types.insert(*from_id, *from_type);
+                self.known_node_types.insert(*to_id, *to_type);
 
                 // Update topology
                 let from_to = self.topology.entry(*from_id).or_default();
@@ -40,7 +40,10 @@ impl RustBustersServer {
         }
 
         info!("Server {}: Updated topology: {:?}", self.id, self.topology);
-        info!("Server {}: Known nodes: {:?}", self.id, self.known_nodes);
+        info!(
+            "Server {}: Known nodes: {:?}",
+            self.id, self.known_node_types
+        );
     }
 
     /// Handles an incoming flood request and responds accordingly.

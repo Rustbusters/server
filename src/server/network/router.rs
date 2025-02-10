@@ -48,7 +48,7 @@ impl RustBustersServer {
             if let Some(neighbors) = self.topology.get(&current) {
                 for &neighbor in neighbors {
                     let neighbor_type = self
-                        .known_nodes
+                        .known_node_types
                         .get(&neighbor)
                         .expect("No neighbor found")
                         .clone();

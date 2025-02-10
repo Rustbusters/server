@@ -20,7 +20,7 @@ impl RustBustersServer {
     /// ### Behavior
     /// - If the fragment is found in `pending_sent`:
     ///   - If `NackType::Dropped`, resends the fragment and updates statistics.
-    ///   - If `NackType::ErrorInRouting`, removes the faulty node from `topology` and `known_nodes`,
+    ///   - If `NackType::ErrorInRouting`, removes the faulty node from `topology` and `known_node_types`,
     ///     recalculates the route, and attempts to resend the fragment.
     ///   - If `NackType::DestinationIsDrone` or `NackType::UnexpectedRecipient`, logs a warning.
     /// - If the fragment is unknown, logs a warning.
@@ -70,7 +70,7 @@ impl RustBustersServer {
                             neighbors.retain(|&dest_id| dest_id != drone_id);
                         });
                         // Removing from known nodes
-                        self.known_nodes.remove(&drone_id);
+                        self.known_node_types.remove(&drone_id);
 
                         // Calculating new route and resending fragment
                         let dest_id = *packet.routing_header.hops.last().expect("No destination");

@@ -37,7 +37,7 @@ pub struct RustBustersServer {
     pub(crate) ws_receiver: Receiver<WebSocketRequest>, // receiver for the websocket server
     pub(crate) server_controller_sender: Sender<HostCommand>,
 
-    pub(crate) known_nodes: HashMap<NodeId, NodeType>,
+    pub(crate) known_node_types: HashMap<NodeId, NodeType>, // node_id -> node_type (Drone/Client/Server)
     pub(crate) topology: HashMap<NodeId, Vec<NodeId>>,
 
     pub(crate) flood_id_counter: u64,
@@ -114,7 +114,7 @@ impl RustBustersServer {
             packet_recv,
             ws_receiver,
             server_controller_sender,
-            known_nodes: HashMap::new(),
+            known_node_types: HashMap::new(),
             topology: HashMap::new(),
             flood_id_counter: random_number,
             session_id_counter: 0,
