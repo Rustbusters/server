@@ -1,7 +1,7 @@
 use crate::RustBustersServer;
 use log::info;
 use std::collections::{HashMap, HashSet, VecDeque};
-use wg_2024::network::NodeId;
+use wg_2024::{network::NodeId, packet::NodeType};
 
 impl RustBustersServer {
     /// Finds the shortest path (number of edges) from the current server to the specified destination using Breadth-First Search (BFS).
@@ -47,7 +47,15 @@ impl RustBustersServer {
 
             if let Some(neighbors) = self.topology.get(&current) {
                 for &neighbor in neighbors {
-                    if !visited.contains(&neighbor) {
+                    if !visited.contains(&neighbor)
+                        && self
+                            .known_nodes
+                            .get(&neighbor)
+                            .expect("No neighbor found")
+                            .clone()
+                            != NodeType::Server
+                    // Check if path contains only drone nodes or client is in the final destination
+                    {
                         visited.insert(neighbor);
                         queue.push_back(neighbor);
                         predecessors.insert(neighbor, current);
