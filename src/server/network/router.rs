@@ -47,14 +47,15 @@ impl RustBustersServer {
 
             if let Some(neighbors) = self.topology.get(&current) {
                 for &neighbor in neighbors {
+                    let neighbor_type = self
+                        .known_nodes
+                        .get(&neighbor)
+                        .expect("No neighbor found")
+                        .clone();
                     if !visited.contains(&neighbor)
-                        && self
-                            .known_nodes
-                            .get(&neighbor)
-                            .expect("No neighbor found")
-                            .clone()
-                            != NodeType::Server
-                    // Check if path contains only drone nodes or client is in the final destination
+                        && (neighbor_type == NodeType::Drone
+                            || (neighbor_type == NodeType::Client && neighbor == destination_id))
+                    // Check if path contains only drone nodes or client is the final destination
                     {
                         visited.insert(neighbor);
                         queue.push_back(neighbor);
